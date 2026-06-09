@@ -1,4 +1,5 @@
 import type {
+  ClueId,
   ExitId,
   InteractiveId,
   ItemId,
@@ -37,6 +38,7 @@ export interface InteractiveDefinition {
   name: string;
   aliases: string[];
   visibleFromStart: boolean;
+  searchOutcome?: SearchOutcome;
 }
 
 export interface NpcDefinition {
@@ -55,6 +57,20 @@ export interface ItemDefinition {
   carryable: boolean;
 }
 
+export interface ClueDefinition {
+  id: ClueId;
+  title: string;
+  summary: string;
+  defaultStrength: EvidenceStrength;
+}
+
+export interface SearchOutcome {
+  message: string;
+  alreadySearchedMessage: string;
+  clueIds?: ClueId[];
+  revealedItemIds?: ItemId[];
+}
+
 export interface AdventureDefinition {
   meta: {
     id: string;
@@ -67,4 +83,5 @@ export interface AdventureDefinition {
   interactives: Record<InteractiveId, InteractiveDefinition>;
   npcs: Record<NpcId, NpcDefinition>;
   items: Record<ItemId, ItemDefinition>;
+  clues: Record<ClueId, ClueDefinition>;
 }

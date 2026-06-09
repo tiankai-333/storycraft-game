@@ -4,10 +4,11 @@ export function createEvent(
   state: WorldState,
   type: RuntimeEvent["type"],
   sourceCommand: CommandVerb,
-  message: string
+  message: string,
+  sequence = 1
 ): RuntimeEvent {
   return {
-    id: `evt_${state.eventLog.length + 1}_${type}`,
+    id: `evt_${state.eventLog.length + sequence}_${type}`,
     type,
     sourceCommand,
     roomId: state.currentRoomId,

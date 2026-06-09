@@ -5,6 +5,10 @@ export type EventType =
   | "looked"
   | "room_entered"
   | "inventory_checked"
+  | "search_resolved"
+  | "clue_discovered"
+  | "item_discovered"
+  | "turn_spent"
   | "command_rejected";
 
 export interface RuntimeEvent {

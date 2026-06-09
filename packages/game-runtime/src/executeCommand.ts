@@ -7,6 +7,7 @@ import type {
 import { executeGo } from "./commands/go";
 import { executeInventory } from "./commands/inventory";
 import { executeLook } from "./commands/look";
+import { executeSearch } from "./commands/search";
 import { frostmereAdventure } from "./content/frostmere";
 import { appendEvents, createEvent } from "./events";
 import { getVisibleState } from "./getVisibleState";
@@ -24,6 +25,7 @@ export function executeCommand(
     case "inventory":
       return executeInventory(state, adventure);
     case "search":
+      return executeSearch(state, input, adventure);
     case "take":
     case "talk":
     case "use":

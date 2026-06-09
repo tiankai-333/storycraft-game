@@ -243,7 +243,14 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_great_hall",
       name: "covered body",
       aliases: ["body", "covered body"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "A broken watch in Alden's pocket is stopped at 11:47, earlier than the household's midnight story.",
+        alreadySearchedMessage:
+          "You have already checked the body. The stopped watch remains your clearest time marker.",
+        clueIds: ["clue_watch_stopped_1147"]
+      }
     },
     int_great_hall_stair: {
       id: "int_great_hall_stair",
@@ -264,7 +271,15 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_study",
       name: "desk",
       aliases: ["desk"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "A torn ledger page names Theo's automaton designs among assets Alden planned to sell.",
+        alreadySearchedMessage:
+          "The desk has already yielded the torn ledger page and its motive.",
+        clueIds: ["clue_stolen_design_motive"],
+        revealedItemIds: ["item_torn_ledger_page"]
+      }
     },
     int_study_ledgers: {
       id: "int_study_ledgers",
@@ -299,7 +314,14 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_servants_hall",
       name: "servant bell board",
       aliases: ["bell board", "servant bell board"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "The bell board shows the tower signal rang after Alden was already dead.",
+        alreadySearchedMessage:
+          "The bell board still points to a signal after the likely time of death.",
+        clueIds: ["clue_servant_bell_after_death"]
+      }
     },
     int_servants_hall_kitchen_ledger: {
       id: "int_servants_hall_kitchen_ledger",
@@ -320,7 +342,15 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_bell_tower",
       name: "clapper mount",
       aliases: ["clapper mount", "mount"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "The cracked clapper mount shows the tower mechanism was tampered with and the fall was staged.",
+        alreadySearchedMessage:
+          "The clapper mount has already shown you how the tower scene was staged.",
+        clueIds: ["clue_tower_staged"],
+        revealedItemIds: ["item_cracked_bell_clapper"]
+      }
     },
     int_bell_tower_window_latch: {
       id: "int_bell_tower_window_latch",
@@ -341,7 +371,15 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_winter_garden",
       name: "snow trail",
       aliases: ["snow trail", "trail"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "Narrow soot-marked footprints cross the frost and double back toward the Coach Yard.",
+        alreadySearchedMessage:
+          "The doubled-back soot-marked trail remains visible in the frost.",
+        clueIds: ["clue_soot_marked_garden_route"],
+        revealedItemIds: ["item_soot_stained_gloves"]
+      }
     },
     int_winter_garden_broken_planter: {
       id: "int_winter_garden_broken_planter",
@@ -369,7 +407,15 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_coach_yard",
       name: "snowbank",
       aliases: ["snowbank", "snow bank"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "A vial of laudanum is tucked into the snowbank, making the fall look less like an accident.",
+        alreadySearchedMessage:
+          "The snowbank has already given up the laudanum evidence.",
+        clueIds: ["clue_drugged_before_fall"],
+        revealedItemIds: ["item_vial_laudanum"]
+      }
     },
     int_coach_yard_coach_box: {
       id: "int_coach_yard_coach_box",
@@ -458,6 +504,44 @@ export const frostmereAdventure: AdventureDefinition = {
       description: "A damaged piece of the bell mechanism.",
       aliases: ["cracked bell clapper", "bell clapper", "clapper"],
       carryable: true
+    }
+  },
+  clues: {
+    clue_watch_stopped_1147: {
+      id: "clue_watch_stopped_1147",
+      title: "Watch Stopped at 11:47",
+      summary: "Alden's broken watch fixes the likely death time before midnight.",
+      defaultStrength: "standard"
+    },
+    clue_servant_bell_after_death: {
+      id: "clue_servant_bell_after_death",
+      title: "Servant Bell After Death",
+      summary: "The tower signal rang after Alden was already dead.",
+      defaultStrength: "standard"
+    },
+    clue_stolen_design_motive: {
+      id: "clue_stolen_design_motive",
+      title: "Stolen Design Motive",
+      summary: "Alden planned to sell Theo's automaton designs.",
+      defaultStrength: "standard"
+    },
+    clue_soot_marked_garden_route: {
+      id: "clue_soot_marked_garden_route",
+      title: "Soot-Marked Garden Route",
+      summary: "Soot-marked footprints show someone used the garden path and doubled back.",
+      defaultStrength: "standard"
+    },
+    clue_drugged_before_fall: {
+      id: "clue_drugged_before_fall",
+      title: "Drugged Before the Fall",
+      summary: "Laudanum evidence suggests Alden was incapacitated before the tower fall.",
+      defaultStrength: "standard"
+    },
+    clue_tower_staged: {
+      id: "clue_tower_staged",
+      title: "Tower Was Staged",
+      summary: "The cracked clapper mount shows the locked-room fall was staged.",
+      defaultStrength: "standard"
     }
   }
 };
