@@ -1,0 +1,12 @@
+export type AdventureId = string;
+export type RoomId = string;
+export type ExitId = string;
+export type InteractiveId = string;
+export type NpcId = string;
+export type ItemId = string;
+export type ClueId = string;
+export type QuestId = string;
+export type ObjectiveId = string;
+export type EndingId = string;
+export type ConsequenceId = string;
+export type EventId = string;
