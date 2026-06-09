@@ -503,7 +503,7 @@ export const frostmereAdventure: AdventureDefinition = {
       name: "Cracked Bell Clapper",
       description: "A damaged piece of the bell mechanism.",
       aliases: ["cracked bell clapper", "bell clapper", "clapper"],
-      carryable: true
+      carryable: false
     }
   },
   clues: {

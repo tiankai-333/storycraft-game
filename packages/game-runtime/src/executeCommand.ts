@@ -8,6 +8,7 @@ import { executeGo } from "./commands/go";
 import { executeInventory } from "./commands/inventory";
 import { executeLook } from "./commands/look";
 import { executeSearch } from "./commands/search";
+import { executeTake } from "./commands/take";
 import { frostmereAdventure } from "./content/frostmere";
 import { appendEvents, createEvent } from "./events";
 import { getVisibleState } from "./getVisibleState";
@@ -27,6 +28,7 @@ export function executeCommand(
     case "search":
       return executeSearch(state, input, adventure);
     case "take":
+      return executeTake(state, input, adventure);
     case "talk":
     case "use":
     case "accuse":
