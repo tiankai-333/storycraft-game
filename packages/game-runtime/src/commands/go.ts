@@ -34,7 +34,7 @@ export function executeGo(
     };
   }
 
-  if (exit.locked) {
+  if (exit.locked && !isTowerAccessible(state, exit.id)) {
     const message = exit.failureText ?? "That way is locked.";
     const events = [createEvent(state, "command_rejected", "go", message)];
     const nextState = appendEvents(state, events);
@@ -72,4 +72,14 @@ export function executeGo(
 
 function normalize(value: string | undefined): string {
   return value?.trim().toLowerCase() ?? "";
+}
+
+const TOWER_EXIT_IDS = [
+  "exit_great_hall_to_bell_tower",
+  "exit_servants_hall_to_bell_tower"
+];
+
+function isTowerAccessible(state: WorldState, exitId: string): boolean {
+  if (!TOWER_EXIT_IDS.includes(exitId)) return false;
+  return state.flags.towerUnlocked === true || state.flags.minaGrantedAccess === true;
 }

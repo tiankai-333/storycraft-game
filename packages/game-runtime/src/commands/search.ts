@@ -2,11 +2,13 @@ import type {
   AdventureDefinition,
   CommandInput,
   CommandResult,
+  EvidenceStrength,
   InteractiveDefinition,
   WorldState
 } from "../../../shared/src";
 import { appendEvents, createEvent } from "../events";
 import { getVisibleState } from "../getVisibleState";
+import { recordConsequence } from "../rules/consequences";
 
 export function executeSearch(
   state: WorldState,
@@ -62,12 +64,29 @@ export function executeSearch(
   const discoveredCluesById = { ...state.discoveredCluesById };
   const discoveredItemIds = [...state.discoveredItemIds];
 
+  // Check for weakened outcome
+  let isWeakened = false;
+  let searchMessage = outcome.message;
+  if (
+    outcome.weakenedByConsequence &&
+    state.consequenceIds.includes(outcome.weakenedByConsequence)
+  ) {
+    isWeakened = true;
+    searchMessage = outcome.weakenedMessage ?? outcome.message;
+  }
+
+  const clueStrength: EvidenceStrength = isWeakened
+    ? (outcome.weakenedClueStrength ?? "weak")
+    : undefined as unknown as EvidenceStrength; // will be set per-clue below
+
   for (const clueId of outcome.clueIds ?? []) {
     const clue = adventure.clues[clueId];
     if (!clue) {
       throw new Error(`Unknown clue in search outcome: ${clueId}`);
     }
-    discoveredCluesById[clueId] = clue.defaultStrength;
+    discoveredCluesById[clueId] = isWeakened
+      ? (outcome.weakenedClueStrength ?? "weak")
+      : clue.defaultStrength;
   }
 
   for (const itemId of outcome.revealedItemIds ?? []) {
@@ -79,7 +98,7 @@ export function executeSearch(
     }
   }
 
-  const searchedState: WorldState = {
+  let searchedState: WorldState = {
     ...state,
     turnIndex: state.turnIndex + 1,
     turnsRemaining: state.turnsRemaining - 1,
@@ -88,8 +107,13 @@ export function executeSearch(
     discoveredItemIds
   };
 
+  // Record search consequences
+  for (const consequenceId of outcome.consequenceIds ?? []) {
+    searchedState = recordConsequence(searchedState, consequenceId);
+  }
+
   const events = [
-    createEvent(searchedState, "search_resolved", "search", outcome.message, 1),
+    createEvent(searchedState, "search_resolved", "search", searchMessage, 1),
     ...(outcome.clueIds ?? []).map((clueId, index) =>
       createEvent(
         searchedState,
@@ -122,7 +146,7 @@ export function executeSearch(
     state: nextState,
     events,
     visibleState: getVisibleState(nextState, adventure),
-    message: outcome.message,
+    message: searchMessage,
     ok: true,
     turnSpent: true
   };

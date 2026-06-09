@@ -10,7 +10,16 @@ export type EventType =
   | "item_discovered"
   | "item_taken"
   | "turn_spent"
-  | "command_rejected";
+  | "command_rejected"
+  | "npc_talked"
+  | "trust_changed"
+  | "item_used"
+  | "access_unlocked"
+  | "consequence_recorded"
+  | "accusation_made"
+  | "ending_resolved"
+  | "objective_updated"
+  | "clue_strength_changed";
 
 export interface RuntimeEvent {
   id: EventId;

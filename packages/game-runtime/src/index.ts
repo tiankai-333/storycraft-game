@@ -2,6 +2,7 @@ export { frostmereAdventure } from "./content/frostmere";
 export { createInitialState } from "./createInitialState";
 export { executeCommand } from "./executeCommand";
 export { getVisibleState } from "./getVisibleState";
+export { evaluateAll } from "./rules/conditions";
 export type {
   CommandInput,
   CommandResult,

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StoryCraft</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- 大厅画面 -->
+  <div id="lobby-screen" class="overlay">
+    <div class="lobby-container">
+      <button id="lang-toggle-lobby" class="lang-btn" title="Switch language">EN</button>
+      <button id="settings-btn-lobby" class="settings-btn" title="AI 设置">⚙️</button>
+      <h1 class="lobby-title">🏰 StoryCraft</h1>
+      <p class="lobby-subtitle">探索不同的世界，揭开隐藏的真相</p>
+      <div id="lobby-grid" class="lobby-grid">
+        <!-- World cards rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 结局画面 -->
+  <div id="end-screen" class="overlay hidden">
+    <div class="overlay-content">
+      <h1 id="ending-title"></h1>
+      <p id="ending-summary"></p>
+      <div id="ending-consequences"></div>
+      <div style="display:flex;gap:0.75rem;justify-content:center;margin-top:1rem">
+        <button id="restart-btn" class="btn-primary">再来一次</button>
+        <button id="back-to-lobby-btn" class="btn-primary btn-secondary">返回大厅</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 游戏界面 -->
+  <div id="game" class="hidden">
+    <header id="status-bar">
+      <span id="turns-display">剩余回合：8</span>
+      <span id="room-display">大厅</span>
+      <button id="lang-toggle-game" class="lang-btn-sm" title="Switch language">中文</button>
+      <button id="settings-btn-game" class="lang-btn-sm" title="AI 设置">⚙️</button>
+    </header>
+
+    <div id="main-layout">
+      <div id="left-panel">
+        <section id="scene-panel">
+          <h2 id="room-name"></h2>
+          <p id="room-description"></p>
+          <div id="room-art"></div>
+          <div id="room-exits"></div>
+          <div id="room-npcs"></div>
+        </section>
+
+        <section id="narrative-panel">
+          <div id="narrative-log"></div>
+        </section>
+
+        <div id="command-bar">
+          <select id="npc-select" class="npc-select hidden" autocomplete="off"></select>
+          <input type="text" id="command-input" placeholder="说点什么…" autocomplete="off" />
+          <button id="command-submit">→</button>
+        </div>
+      </div>
+
+      <aside id="right-panel">
+        <!-- 地图 (dynamic) -->
+        <section id="map-section">
+          <h3 id="map-heading">🗺️ 地图</h3>
+          <div id="map-body">
+            <!-- SVG map generated dynamically by map-renderer.ts -->
+          </div>
+        </section>
+
+        <!-- NPC -->
+        <section id="npc-section">
+          <h3 id="npc-heading">👤 在场人物</h3>
+          <div id="npc-list"></div>
+        </section>
+
+        <!-- 场景物品 -->
+        <section id="scene-items-section">
+          <h3 id="scene-heading">🔍 场景</h3>
+          <div id="scene-items-list"></div>
+        </section>
+
+        <!-- 物品栏 -->
+        <section id="inventory-section">
+          <h3 id="inventory-heading">🎒 物品栏</h3>
+          <ul id="inventory-list"></ul>
+        </section>
+
+        <!-- 线索 -->
+        <section id="clues-section">
+          <h3 id="clues-heading">📋 线索</h3>
+          <ul id="clues-list"></ul>
+        </section>
+
+        <!-- 信任度 -->
+        <section id="trust-section">
+          <h3 id="trust-heading">💬 信任度</h3>
+          <div id="trust-list"></div>
+        </section>
+
+        <!-- 后果 -->
+        <section id="consequences-section">
+          <h3 id="consequences-heading">⚠️ 后果</h3>
+          <ul id="consequences-list"></ul>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- AI 设置弹窗 -->
+  <div id="settings-modal" class="overlay hidden">
+    <div class="overlay-content" style="text-align:left;max-width:420px">
+      <button id="settings-close" class="lang-btn" title="关闭">✕</button>
+      <h2 style="color:var(--text-highlight);margin-bottom:0.75rem" id="settings-title">AI 叙事设置</h2>
+      <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text-secondary)">
+        API Key
+        <input type="password" id="settings-api-key" placeholder="sk-..." style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
+      </label>
+      <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text-secondary)">
+        Base URL
+        <input type="text" id="settings-base-url" placeholder="https://api.deepseek.com" style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
+      </label>
+      <label style="display:block;margin-bottom:0.75rem;font-size:0.85rem;color:var(--text-secondary)">
+        Model
+        <input type="text" id="settings-model" placeholder="deepseek-v4-pro" style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
+      </label>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+        <button id="settings-save" class="btn-primary" style="padding:0.4rem 1.2rem;font-size:0.85rem">保存</button>
+      </div>
+      <p id="settings-status" style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-secondary);min-height:1.2em"></p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

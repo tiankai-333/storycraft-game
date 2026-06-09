@@ -1,9 +1,13 @@
 import type {
   ClueId,
+  ConsequenceId,
+  EndingId,
   ExitId,
   InteractiveId,
   ItemId,
   NpcId,
+  ObjectiveId,
+  QuestId,
   RoomId
 } from "./ids";
 
@@ -69,7 +73,113 @@ export interface SearchOutcome {
   alreadySearchedMessage: string;
   clueIds?: ClueId[];
   revealedItemIds?: ItemId[];
+  consequenceIds?: ConsequenceId[];
+  weakenedByConsequence?: ConsequenceId;
+  weakenedMessage?: string;
+  weakenedClueStrength?: EvidenceStrength;
 }
+
+// --- Condition system ---
+
+export type ConditionKind =
+  | "trust_at_least"
+  | "has_clue"
+  | "has_item"
+  | "has_consequence"
+  | "not_has_consequence"
+  | "flag_equals"
+  | "clue_count_at_least"
+  | "npc_in_room";
+
+export interface TopicCondition {
+  kind: ConditionKind;
+  npcId?: NpcId;
+  roomId?: RoomId;
+  clueId?: ClueId;
+  itemId?: ItemId;
+  consequenceId?: ConsequenceId;
+  minTrust?: TrustLevel;
+  flagKey?: string;
+  flagValue?: boolean;
+  minStrength?: EvidenceStrength;
+  minClueCount?: number;
+}
+
+// --- Topic gates (talk command) ---
+
+export interface TopicGateDefinition {
+  id: string;
+  npcId: NpcId;
+  topicAliases: string[];
+  requires?: TopicCondition[];
+  blockedResponse: string;
+  response: string;
+  repeatedResponse: string;
+  revealsClueIds?: ClueId[];
+  revealsItemIds?: ItemId[];
+  trustDelta?: number;
+  consequenceIds?: ConsequenceId[];
+  flagChanges?: Record<string, boolean>;
+  movesNpcToRoomId?: RoomId;
+}
+
+// --- Use rules (use command) ---
+
+export interface UseRuleDefinition {
+  id: string;
+  itemId: ItemId;
+  targetAliases: string[];
+  requires?: TopicCondition[];
+  blockedResponse: string;
+  response: string;
+  alreadyUsedResponse?: string;
+  unlocksExitIds?: ExitId[];
+  revealsClueIds?: ClueId[];
+  trustDelta?: Partial<Record<NpcId, number>>;
+  consequenceIds?: ConsequenceId[];
+  flagChanges?: Record<string, boolean>;
+  npcPresent?: NpcId;
+}
+
+// --- Endings ---
+
+export interface EndingDefinition {
+  id: EndingId;
+  title: string;
+  summary: string;
+  priority: number;
+  conditions: TopicCondition[];
+  requiresNpcId?: NpcId;
+  requiresMode?: string;
+  requiresRoomId?: RoomId;
+  consequenceIds?: ConsequenceId[];
+  flagChanges?: Record<string, boolean>;
+}
+
+// --- Consequences ---
+
+export interface ConsequenceDefinition {
+  id: ConsequenceId;
+  label: string;
+  description: string;
+}
+
+// --- Quests and Objectives ---
+
+export interface QuestDefinition {
+  id: QuestId;
+  title: string;
+  objectiveIds: ObjectiveId[];
+}
+
+export interface ObjectiveDefinition {
+  id: ObjectiveId;
+  questId: QuestId;
+  label: string;
+  checkCondition: TopicCondition;
+}
+
+// --- Adventure definition ---
 
 export interface AdventureDefinition {
   meta: {
@@ -84,4 +194,10 @@ export interface AdventureDefinition {
   npcs: Record<NpcId, NpcDefinition>;
   items: Record<ItemId, ItemDefinition>;
   clues: Record<ClueId, ClueDefinition>;
+  topicGates?: Record<string, TopicGateDefinition>;
+  useRules?: Record<string, UseRuleDefinition>;
+  endings?: Record<EndingId, EndingDefinition>;
+  consequences?: Record<ConsequenceId, ConsequenceDefinition>;
+  quests?: Record<QuestId, QuestDefinition>;
+  objectives?: Record<ObjectiveId, ObjectiveDefinition>;
 }

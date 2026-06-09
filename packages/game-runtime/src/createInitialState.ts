@@ -23,9 +23,9 @@ export function createInitialState(
     discoveredCluesById: {},
     trustByNpcId,
     npcRoomById,
-    questStatesById: {
-      quest_name_alden_truth: "active"
-    },
+    questStatesById: Object.fromEntries(
+      Object.keys(adventure.quests ?? {}).map(id => [id, "active" as const])
+    ),
     objectiveStatesById: {},
     flags: {},
     consequenceIds: [],

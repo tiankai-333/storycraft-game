@@ -242,7 +242,7 @@ export const frostmereAdventure: AdventureDefinition = {
       id: "int_great_hall_body",
       roomId: "room_great_hall",
       name: "covered body",
-      aliases: ["body", "covered body"],
+      aliases: ["body", "covered body", "alden", "voss"],
       visibleFromStart: true,
       searchOutcome: {
         message:
@@ -307,7 +307,16 @@ export const frostmereAdventure: AdventureDefinition = {
       roomId: "room_servants_hall",
       name: "coat hooks",
       aliases: ["coat hooks", "coats"],
-      visibleFromStart: true
+      visibleFromStart: true,
+      searchOutcome: {
+        message:
+          "Behind the coats you find a brass service key hidden in a coat pocket. Mina will not be pleased that you searched here.",
+        alreadySearchedMessage:
+          "You have already searched the coat hooks.",
+        revealedItemIds: ["item_brass_service_key"],
+        clueIds: [],
+        consequenceIds: ["conseq_broke_mina_trust"]
+      }
     },
     int_servants_hall_bell_board: {
       id: "int_servants_hall_bell_board",
@@ -414,7 +423,11 @@ export const frostmereAdventure: AdventureDefinition = {
         alreadySearchedMessage:
           "The snowbank has already given up the laudanum evidence.",
         clueIds: ["clue_drugged_before_fall"],
-        revealedItemIds: ["item_vial_laudanum"]
+        revealedItemIds: ["item_vial_laudanum"],
+        weakenedByConsequence: "conseq_tipped_off_theo",
+        weakenedMessage:
+          "You find only a crushed cork in the snow. Someone has been here before you — the real evidence is gone.",
+        weakenedClueStrength: "weak"
       }
     },
     int_coach_yard_coach_box: {
@@ -542,6 +555,409 @@ export const frostmereAdventure: AdventureDefinition = {
       title: "Tower Was Staged",
       summary: "The cracked clapper mount shows the locked-room fall was staged.",
       defaultStrength: "standard"
+    }
+  },
+  topicGates: {
+    // Mina topics
+    topic_mina_greeting: {
+      id: "topic_mina_greeting",
+      npcId: "npc_mina_arlen",
+      topicAliases: ["greeting", "hello", "hi", "你好", "嗨"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "Mina straightens her apron. 'If you need something, ask plainly. I have duties to attend to.'",
+      repeatedResponse:
+        "Mina nods curtly. 'We have already exchanged pleasantries.'"
+    },
+    topic_mina_alden: {
+      id: "topic_mina_alden",
+      npcId: "npc_mina_arlen",
+      topicAliases: ["alden", "master", "voss", "death", "奥登", "艾登", "老爷", "被害人", "被害者"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "Mina's expression tightens. 'Master Alden was... a difficult man. He met with Theo after supper that night — I saw them heading toward the Study. He was not kind to those he considered beneath him.'",
+      repeatedResponse:
+        "Mina shakes her head. 'I have told you what I know about the Master.'",
+      trustDelta: 1
+    },
+    topic_mina_bell: {
+      id: "topic_mina_bell",
+      npcId: "npc_mina_arlen",
+      topicAliases: ["bell", "tower", "servant bell", "铃", "铃声", "钟声", "塔", "塔楼", "钟楼"],
+      requires: [
+        { kind: "trust_at_least", npcId: "npc_mina_arlen", minTrust: 1 }
+      ],
+      blockedResponse:
+        "Mina's eyes narrow. 'I do not discuss household matters with strangers.'",
+      response:
+        "Mina lowers her voice. 'The servant bell from the tower rang well after midnight — but I know the body was already cold when it rang. Someone was up there, making it look like an accident.'",
+      repeatedResponse:
+        "'I have told you about the bell. Someone rang it after Alden was already dead.'",
+      revealsClueIds: ["clue_servant_bell_after_death"],
+      trustDelta: 1
+    },
+    topic_mina_key: {
+      id: "topic_mina_key",
+      npcId: "npc_mina_arlen",
+      topicAliases: ["key", "tower access", "access", "service stair", "钥匙", "楼梯", "通道"],
+      requires: [
+        { kind: "trust_at_least", npcId: "npc_mina_arlen", minTrust: 2 }
+      ],
+      blockedResponse:
+        "Mina's jaw sets. 'There are locked doors in this house for a reason.'",
+      response:
+        "Mina reaches into her apron and produces a narrow brass key. 'The service stair to the tower. Use it carefully — and do not let Captain Vale see how you got it.'",
+      repeatedResponse:
+        "'I have already given you what you need for the tower. Be careful.'",
+      revealsItemIds: ["item_brass_service_key"],
+      flagChanges: { minaGrantedAccess: true }
+    },
+    // Theo topics
+    topic_theo_greeting: {
+      id: "topic_theo_greeting",
+      npcId: "npc_theo_rusk",
+      topicAliases: ["greeting", "hello", "hi", "你好", "嗨"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "Theo startles, then steadies himself. 'Oh — you are the magistrate. I was just... working. On repairs.'",
+      repeatedResponse: "Theo nods nervously. 'Yes?'"
+    },
+    topic_theo_designs: {
+      id: "topic_theo_designs",
+      npcId: "npc_theo_rusk",
+      topicAliases: ["designs", "clockwork", "work", "automaton", "设计", "设计图", "机械", "钟表", "作品"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "A flicker of pride crosses Theo's face. 'My automaton designs were my life's work. Master Alden kept them in the Study safe — said he was protecting my interests.' His voice drops. 'I am not so sure anymore.'",
+      repeatedResponse:
+        "'I told you about my designs. Master Alden was supposed to protect them.'",
+      trustDelta: 1
+    },
+    topic_theo_gloves: {
+      id: "topic_theo_gloves",
+      npcId: "npc_theo_rusk",
+      topicAliases: ["gloves", "soot", "garden route", "手套", "煤灰"],
+      requires: [
+        { kind: "has_item", itemId: "item_soot_stained_gloves" },
+        { kind: "not_has_consequence", consequenceId: "conseq_tipped_off_theo" }
+      ],
+      blockedResponse:
+        "Theo fidgets with his cuffs. 'I do not know what you mean.'",
+      response:
+        "Theo's face drains of color when he sees the gloves. 'Where did you — those could belong to anyone. The workshops are always sooty.' He takes a step back. 'I need some air. I'll be at the gatehouse.'",
+      repeatedResponse: "Theo avoids your gaze. 'I have nothing more to say about those.'",
+      consequenceIds: ["conseq_tipped_off_theo"],
+      movesNpcToRoomId: "room_gatehouse"
+    },
+    topic_theo_ledger: {
+      id: "topic_theo_ledger",
+      npcId: "npc_theo_rusk",
+      topicAliases: ["ledger", "page", "contract", "账本", "账簿", "合同"],
+      requires: [
+        { kind: "has_item", itemId: "item_torn_ledger_page" },
+        { kind: "not_has_consequence", consequenceId: "conseq_tipped_off_theo" }
+      ],
+      blockedResponse:
+        "Theo looks puzzled. 'What ledger? I keep my notes in the workshop.'",
+      response:
+        "Theo freezes when he sees the torn page. 'He was going to sell them. My designs — he was going to sell them and send me away.' His voice cracks. 'I need to leave. I'll wait at the gatehouse.'",
+      repeatedResponse:
+        "Theo refuses to discuss the ledger further.",
+      consequenceIds: ["conseq_tipped_off_theo"],
+      movesNpcToRoomId: "room_gatehouse"
+    },
+    topic_theo_mercy: {
+      id: "topic_theo_mercy",
+      npcId: "npc_theo_rusk",
+      topicAliases: ["mercy", "confession", "truth", "怜悯", "宽恕", "认罪", "真相", "自白"],
+      requires: [
+        { kind: "clue_count_at_least", minStrength: "standard", minClueCount: 4 },
+        { kind: "has_consequence", consequenceId: "conseq_tipped_off_theo" }
+      ],
+      blockedResponse:
+        "Theo shakes his head. 'I do not know what you want from me.'",
+      response:
+        "Theo slumps against the gatehouse wall. 'You know, don't you? About the designs — about everything.' He stares at the snow. 'He was going to throw my life away. I just... I wanted him to stop. I never meant for it to end like this.'",
+      repeatedResponse:
+        "'I have told you everything. What happens now is up to you.'",
+      flagChanges: { theo_confessed: true }
+    },
+    // Vale topics
+    topic_vale_greeting: {
+      id: "topic_vale_greeting",
+      npcId: "npc_captain_vale",
+      topicAliases: ["greeting", "hello", "hi", "captain", "你好", "嗨", "队长"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "Captain Vale taps his boot impatiently. 'Well? Have you found anything useful, or are we standing around until the road opens?'",
+      repeatedResponse: "Vale crosses his arms. 'What now?'"
+    },
+    topic_vale_report: {
+      id: "topic_vale_report",
+      npcId: "npc_captain_vale",
+      topicAliases: ["report", "official", "arrest", "formal", "报告", "立案", "逮捕", "正式"],
+      requires: [
+        { kind: "clue_count_at_least", minStrength: "standard", minClueCount: 3 }
+      ],
+      blockedResponse:
+        "Vale scowls. 'Come back when you have something solid. I will not file a report on guesswork.'",
+      response:
+        "Vale considers your evidence carefully. 'This is substantive. If you can name a suspect and back it up, I will file a complete report. The bruising on the body looked wrong for a simple fall — I noticed that myself.'",
+      repeatedResponse:
+        "'I have reviewed your evidence. Make your accusation when ready.'",
+      trustDelta: 1
+    },
+    topic_vale_rush: {
+      id: "topic_vale_rush",
+      npcId: "npc_captain_vale",
+      topicAliases: ["rush", "hurry", "pressure", "dawn", "着急", "赶", "催", "天亮", "黎明"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "Vale glances at the window. 'The road opens at dawn. Once it does, people scatter and evidence walks away. We need a name before then.'",
+      repeatedResponse: "'Time is running out. I need a name.'",
+      consequenceIds: ["conseq_captain_rushed_case"]
+    }
+  },
+  useRules: {
+    use_key_tower: {
+      id: "use_key_tower",
+      itemId: "item_brass_service_key",
+      targetAliases: ["tower door", "service stair", "bell tower", "tower"],
+      requires: [],
+      blockedResponse: "",
+      response:
+        "The brass key turns in the lock. The tower door clicks open.",
+      alreadyUsedResponse: "The tower is already unlocked.",
+      unlocksExitIds: ["exit_great_hall_to_bell_tower", "exit_servants_hall_to_bell_tower"],
+      consequenceIds: ["conseq_used_private_key"],
+      flagChanges: { towerUnlocked: true }
+    },
+    use_ledger_theo: {
+      id: "use_ledger_theo",
+      itemId: "item_torn_ledger_page",
+      targetAliases: ["theo", "theo rusk"],
+      requires: [
+        { kind: "not_has_consequence", consequenceId: "conseq_tipped_off_theo" }
+      ],
+      blockedResponse: "Theo is not here to speak with.",
+      response:
+        "Theo goes pale when you show him the ledger page. 'He was selling my work — my life's work!' He backs away. 'I need to leave. I'll be at the gatehouse.'",
+      consequenceIds: ["conseq_tipped_off_theo"],
+      npcPresent: "npc_theo_rusk",
+      flagChanges: {}
+    },
+    use_gloves_theo: {
+      id: "use_gloves_theo",
+      itemId: "item_soot_stained_gloves",
+      targetAliases: ["theo", "theo rusk"],
+      requires: [
+        { kind: "not_has_consequence", consequenceId: "conseq_tipped_off_theo" }
+      ],
+      blockedResponse: "Theo is not here to speak with.",
+      response:
+        "Theo stares at the soot-stained gloves. 'Those are not — anyone could have...' He cannot finish the sentence. 'I need air. I'll be at the gatehouse.'",
+      consequenceIds: ["conseq_tipped_off_theo"],
+      npcPresent: "npc_theo_rusk",
+      flagChanges: {}
+    }
+  },
+  endings: {
+    // Priority 1: Best ending — private mercy confession at gatehouse
+    ending_apprentice_confession: {
+      id: "ending_apprentice_confession",
+      title: "The Apprentice's Confession",
+      summary:
+        "Theo confesses privately and gives up the stolen contract fragments. Public justice is incomplete, but the truth is known to you.",
+      priority: 1,
+      conditions: [
+        { kind: "clue_count_at_least", minStrength: "standard", minClueCount: 4 },
+        { kind: "has_clue", clueId: "clue_stolen_design_motive", minStrength: "standard" },
+        { kind: "has_clue", clueId: "clue_tower_staged", minStrength: "standard" },
+        { kind: "not_has_consequence", consequenceId: "conseq_made_public_accusation" },
+        { kind: "has_consequence", consequenceId: "conseq_tipped_off_theo" }
+      ],
+      requiresNpcId: "npc_theo_rusk",
+      requiresMode: "mercy",
+      requiresRoomId: "room_gatehouse",
+      consequenceIds: ["conseq_offered_theo_mercy"]
+    },
+    // Priority 2: Good ending — formal arrest with full evidence
+    ending_bell_rings_true: {
+      id: "ending_bell_rings_true",
+      title: "The Bell Rings True",
+      summary:
+        "Theo is arrested. Mina confirms the servant bell detail. Vale files a complete report. The road opens with the truth preserved.",
+      priority: 2,
+      conditions: [
+        { kind: "has_consequence", consequenceId: "conseq_made_public_accusation" },
+        { kind: "clue_count_at_least", minStrength: "standard", minClueCount: 4 },
+        { kind: "has_clue", clueId: "clue_stolen_design_motive", minStrength: "standard" },
+        { kind: "has_clue", clueId: "clue_tower_staged", minStrength: "standard" },
+        { kind: "npc_in_room", npcId: "npc_captain_vale" }
+      ],
+      requiresNpcId: "npc_theo_rusk"
+    },
+    // Priority 3: Partial ending — right suspect, thin evidence
+    ending_rushed_accusation: {
+      id: "ending_rushed_accusation",
+      title: "A Hasty Verdict",
+      summary:
+        "You name Theo publicly, but the evidence is thin. Vale makes the arrest reluctantly. The case may not hold at trial.",
+      priority: 3,
+      conditions: [
+        { kind: "has_consequence", consequenceId: "conseq_made_public_accusation" },
+        { kind: "clue_count_at_least", minStrength: "standard", minClueCount: 2 },
+        { kind: "has_clue", clueId: "clue_stolen_design_motive", minStrength: "standard" }
+      ],
+      requiresNpcId: "npc_theo_rusk"
+    },
+    // Priority 4: Wrong person — accuse Mina
+    ending_false_accusation: {
+      id: "ending_false_accusation",
+      title: "The Wrong Hand",
+      summary:
+        "You accuse Mina Arlen. Vale is skeptical but makes a show of authority. Mina's grief turns cold. The real killer walks free with the road crew.",
+      priority: 4,
+      conditions: [
+        { kind: "has_consequence", consequenceId: "conseq_made_public_accusation" }
+      ],
+      requiresNpcId: "npc_mina_arlen"
+    },
+    // Priority 5: Wrong person — accuse Vale
+    ending_vale_accused: {
+      id: "ending_vale_accused",
+      title: "The Constable's Fury",
+      summary:
+        "You turn on Captain Vale. He is incensed by the accusation. Mina watches in silence. When the road opens, Theo slips away unnoticed.",
+      priority: 5,
+      conditions: [
+        { kind: "has_consequence", consequenceId: "conseq_made_public_accusation" }
+      ],
+      requiresNpcId: "npc_captain_vale"
+    },
+    // Priority 6: Private mode dead end — fixes the "private does nothing" bug
+    ending_private_dead_end: {
+      id: "ending_private_dead_end",
+      title: "Whispers in the Cold",
+      summary:
+        "You make a private accusation against Theo, but without offering mercy or securing enough evidence, the words dissolve into the cold air. Nothing changes. Theo watches you carefully until dawn.",
+      priority: 6,
+      conditions: [],
+      requiresNpcId: "npc_theo_rusk",
+      requiresMode: "private"
+    },
+    // Priority 7: Dawn timeout — only triggered by applyDawnEnding
+    ending_dawn_breaks_unanswered: {
+      id: "ending_dawn_breaks_unanswered",
+      title: "Dawn Breaks, Unanswered",
+      summary:
+        "Dawn breaks through the frost. The road crew clears the pass, and the suspects scatter before you can name the truth. The case goes unresolved.",
+      priority: 7,
+      conditions: [
+        { kind: "has_consequence", consequenceId: "conseq_spent_dawn_turn" }
+      ]
+    },
+    // Priority 8: Final fallback — insufficient evidence public accusation
+    ending_snow_covers_tracks: {
+      id: "ending_snow_covers_tracks",
+      title: "Snow Covers the Tracks",
+      summary:
+        "Your accusation fails to convince. The case collapses into silence and snow.",
+      priority: 8,
+      conditions: []
+    }
+  },
+  consequences: {
+    conseq_broke_mina_trust: {
+      id: "conseq_broke_mina_trust",
+      label: "Broke Mina's Trust",
+      description: "You searched Mina's private space without permission."
+    },
+    conseq_tipped_off_theo: {
+      id: "conseq_tipped_off_theo",
+      label: "Tipped Off Theo",
+      description: "You confronted Theo with evidence before securing all clues."
+    },
+    conseq_captain_rushed_case: {
+      id: "conseq_captain_rushed_case",
+      label: "Captain Rushed the Case",
+      description: "Captain Vale pressured you for a premature conclusion."
+    },
+    conseq_used_private_key: {
+      id: "conseq_used_private_key",
+      label: "Used Private Key",
+      description: "You used the stolen service key to access the tower."
+    },
+    conseq_spent_dawn_turn: {
+      id: "conseq_spent_dawn_turn",
+      label: "Spent Dawn Turn",
+      description: "Time ran out before you could reach a conclusion."
+    },
+    conseq_made_public_accusation: {
+      id: "conseq_made_public_accusation",
+      label: "Made Public Accusation",
+      description: "You made a formal public accusation."
+    },
+    conseq_offered_theo_mercy: {
+      id: "conseq_offered_theo_mercy",
+      label: "Offered Theo Mercy",
+      description: "You chose a private resolution instead of public justice."
+    },
+    conseq_made_private_accusation: {
+      id: "conseq_made_private_accusation",
+      label: "Made Private Accusation",
+      description: "You made an informal private accusation."
+    }
+  },
+  quests: {
+    quest_name_alden_truth: {
+      id: "quest_name_alden_truth",
+      title: "Name What Happened to Alden Voss",
+      objectiveIds: [
+        "obj_inspect_body",
+        "obj_find_motive",
+        "obj_test_locked_room",
+        "obj_identify_culprit",
+        "obj_choose_resolution"
+      ]
+    }
+  },
+  objectives: {
+    obj_inspect_body: {
+      id: "obj_inspect_body",
+      questId: "quest_name_alden_truth",
+      label: "Inspect the body",
+      checkCondition: { kind: "has_clue", clueId: "clue_watch_stopped_1147" }
+    },
+    obj_find_motive: {
+      id: "obj_find_motive",
+      questId: "quest_name_alden_truth",
+      label: "Find a motive",
+      checkCondition: { kind: "has_clue", clueId: "clue_stolen_design_motive" }
+    },
+    obj_test_locked_room: {
+      id: "obj_test_locked_room",
+      questId: "quest_name_alden_truth",
+      label: "Test the locked room",
+      checkCondition: { kind: "has_clue", clueId: "clue_tower_staged" }
+    },
+    obj_identify_culprit: {
+      id: "obj_identify_culprit",
+      questId: "quest_name_alden_truth",
+      label: "Identify the culprit",
+      checkCondition: { kind: "flag_equals", flagKey: "accused", flagValue: true }
+    },
+    obj_choose_resolution: {
+      id: "obj_choose_resolution",
+      questId: "quest_name_alden_truth",
+      label: "Choose your resolution",
+      checkCondition: { kind: "flag_equals", flagKey: "gameComplete", flagValue: true }
     }
   }
 };
