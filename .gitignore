@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Builds
+.next/
+dist/
+build/
+coverage/
+
+# Env
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python cache if helper scripts are added later
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local runtime saves/data
+data/
+saves/
