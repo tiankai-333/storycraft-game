@@ -19,10 +19,13 @@ function queryFirst(sql: string, params: any[]): Record<string, any> | null {
 
 // POST /api/ai/chat — proxy to AI provider (guest uses host key)
 router.post("/chat", optionalAuth, async (req, res) => {
-  const user = (req as any).user as AuthPayload;
+  const user = (req as any).user as AuthPayload | undefined;
 
-  // Resolve key: own > host
-  let row = queryFirst("SELECT api_key, base_url, model FROM api_keys WHERE user_id = ? AND is_host = 0", [user.userId]);
+  // Resolve key: logged-in own > host (guest always uses host)
+  let row: Record<string, any> | null = null;
+  if (user) {
+    row = queryFirst("SELECT api_key, base_url, model FROM api_keys WHERE user_id = ? AND is_host = 0", [user.userId]);
+  }
   if (!row) {
     row = queryFirst("SELECT api_key, base_url, model FROM api_keys WHERE is_host = 1 LIMIT 1", []);
   }
