@@ -1,6 +1,6 @@
 import type { CommandInput, VisibleState, WorldState, AdventureDefinition } from "@shared";
 import { createInitialState, executeCommand, getVisibleState } from "@game-runtime";
-import { createDialogueEngine } from "../services/dialogue-provider";
+import { createDialogueEngine, getNarrationMode, getKeySource } from "../services/dialogue-provider";
 import { DialogueService } from "../services/dialogue-service";
 import type { DialogueServiceResult } from "../services/dialogue-service";
 import type { WorldPack } from "../world-registry";
@@ -464,6 +464,25 @@ function renderRoomArt(roomId: string): void {
   }
 }
 
+// --- Config badge (bottom-left status) ---
+function updateConfigBadge(): void {
+  const badge = $("config-badge");
+  const mode = getNarrationMode();
+  if (mode === "normal") {
+    badge.textContent = "📋 普通模式";
+    return;
+  }
+  const source = getKeySource();
+  const aiOk = dialogueService?.isAiAvailable();
+  if (source === "env") {
+    badge.textContent = aiOk ? "🟢 AI · 环境配置" : "🔴 AI · 环境配置（不可用）";
+  } else if (source === "custom") {
+    badge.textContent = aiOk ? "🟢 AI · 自定义配置" : "🔴 AI · 自定义配置（不可用）";
+  } else {
+    badge.textContent = "⚪ 智能模式（未配置密钥）";
+  }
+}
+
 // --- Rendering ---
 export function renderVisibleState(v: VisibleState): void {
   $("turns-display").textContent = UI.turns(v.turnsRemaining);
@@ -497,6 +516,7 @@ export function renderVisibleState(v: VisibleState): void {
   renderClues(v);
   renderTrust(v);
   renderConsequences(v);
+  updateConfigBadge();
 }
 
 // --- Dynamic Map ---
