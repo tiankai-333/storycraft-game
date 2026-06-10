@@ -509,21 +509,17 @@ function renderRoomArt(roomId: string): void {
 
 // --- Config badge (bottom-left status) ---
 function updateConfigBadge(): void {
-  const badge = $("config-badge");
+  const badge = $("config-badge") as HTMLElement;
   const mode = getNarrationMode();
   if (mode === "normal") {
-    badge.textContent = "📋 普通模式";
+    badge.style.display = "none";
     return;
   }
-  const source = getKeySource();
+  badge.style.display = "";
   const aiOk = dialogueService?.isAiAvailable();
-  if (source === "env") {
-    badge.textContent = aiOk ? "🟢 AI · 环境配置" : "🔴 AI · 环境配置（不可用）";
-  } else if (source === "custom") {
-    badge.textContent = aiOk ? "🟢 AI · 自定义配置" : "🔴 AI · 自定义配置（不可用）";
-  } else {
-    badge.textContent = "⚪ 智能模式（未配置密钥）";
-  }
+  // Color dot: green=ok, red=fail, grey=no key
+  badge.style.cssText = "width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:0.4rem;vertical-align:middle";
+  badge.style.background = aiOk ? "#70ad47" : "#c0c0c0";
 }
 
 // --- Rendering ---
