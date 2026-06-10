@@ -71,6 +71,10 @@ html, body {
   cursor: pointer; border-radius: 3px;
 }
 .lang-btn-sm:hover { background: var(--btn-hover); }
+/* Game header dot buttons */
+#user-btn-game:hover, #lang-toggle-game:hover, #settings-btn-game:hover {
+  background: var(--text-secondary);
+}
 
 /* --- Status bar --- */
 #status-bar {
