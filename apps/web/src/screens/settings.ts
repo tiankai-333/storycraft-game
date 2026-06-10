@@ -147,9 +147,9 @@ async function handleTest(): Promise<void> {
     const result = await testKeyConfig();
     if (result.ok) {
       const msgs = [
-        t("✓ 连上了！AI 打了个哈欠，表示准备就绪 (๑•̀ㅂ•́)و✧", "✓ Connected! AI yawned and is ready (๑•̀ㅂ•́)و✧"),
-        t("✓ AI 醒了，正在伸懒腰… 可以开始了 ヾ(≧▽≦*)o", "✓ AI is awake and stretching… let's go ヾ(≧▽≦*)o"),
-        t("✓ 信号良好，NPC 们在搓手等待登场 (≧∇≦)ﾉ", "✓ Signal strong, NPCs are rubbing hands waiting to登场 (≧∇≦)ﾉ"),
+        t("✓ 连上了！NPC 打了个哈欠，表示准备就绪 (๑•̀ㅂ•́)و✧", "✓ Connected! NPC yawned and is ready (๑•̀ㅂ•́)و✧"),
+        t("✓ NPC 醒了，正在伸懒腰… 可以开始了 ヾ(≧▽≦*)o", "✓ NPC is awake and stretching… let's go ヾ(≧▽≦*)o"),
+        t("✓ 信号良好，NPC 们在搓手等待登场 (≧∇≦)ﾉ", "✓ Signal strong, NPCs are rubbing hands waiting to go (≧∇≦)ﾉ"),
       ];
       statusEl.textContent = msgs[Math.floor(Math.random() * msgs.length)];
     } else {
