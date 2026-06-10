@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node --test dist/packages/game-runtime/test/*.test.js",
+    "test": "npm run build && node --test dist/packages/game-runtime/test/*.test.js dist/packages/ai-narrative/test/*.test.js",
     "check": "npm run typecheck && npm test"
   },
   "devDependencies": {

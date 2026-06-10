@@ -611,7 +611,7 @@ export const frostmereAdventure: AdventureDefinition = {
         "Mina reaches into her apron and produces a narrow brass key. 'The service stair to the tower. Use it carefully — and do not let Captain Vale see how you got it.'",
       repeatedResponse:
         "'I have already given you what you need for the tower. Be careful.'",
-      revealsItemIds: ["item_brass_service_key"],
+      grantsItemIds: ["item_brass_service_key"],
       flagChanges: { minaGrantedAccess: true }
     },
     // Theo topics

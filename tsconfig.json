@@ -11,7 +11,9 @@
     "skipLibCheck": true
   },
   "include": [
-    "packages/**/*.ts"
+    "packages/**/*.ts",
+    "apps/web/src/services/dialogue-intent.ts",
+    "apps/web/src/services/dialogue-policy.ts"
   ],
   "exclude": [
     "dist",

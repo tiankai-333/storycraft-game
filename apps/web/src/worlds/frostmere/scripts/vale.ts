@@ -56,6 +56,7 @@ export const valeScript: NpcScript = {
         "If presented with substantial evidence, Vale is willing to file a complete official report and support an arrest.",
       revealConditions:
         "Player presents substantial evidence, asks about official action, or requests Vale to file a report",
+      triggerKeywords: ["evidence", "official", "report", "arrest", "formal", "file", "证据", "线索", "正式", "报告", "立案", "逮捕"],
       reactionWhenPressed:
         "He considers carefully: 'This is substantive. If you can name a suspect, I will file the report.'",
     },
@@ -66,6 +67,7 @@ export const valeScript: NpcScript = {
         "Vale is under pressure to resolve the case before dawn. He will push for a quick resolution, potentially rushing the investigation.",
       revealConditions:
         "Player asks about time pressure, when the road opens, what happens at dawn, or seems to be wasting time",
+      triggerKeywords: ["time", "pressure", "road", "dawn", "hurry", "rush", "wasting time", "时间", "压力", "天亮", "黎明", "赶", "催", "道路"],
       reactionWhenPressed:
         "He glances at the window: 'Once the road opens, people scatter and evidence walks away.'",
     },

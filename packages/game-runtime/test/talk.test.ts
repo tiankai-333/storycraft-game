@@ -71,7 +71,7 @@ describe("talk command — Mina topics", () => {
     assert.ok(result.state.discoveredCluesById.clue_servant_bell_after_death);
   });
 
-  it("topic key at trust 2 grants minaGrantedAccess flag and reveals key", () => {
+  it("topic key at trust 2 grants minaGrantedAccess flag and obtains key", () => {
     let state = run(s(), cmd("go", { target: "west" })).state;
     state = run(state, cmd("talk", { npc: "mina", topic: "alden" })).state;
     state = run(state, cmd("talk", { npc: "mina", topic: "bell" })).state;
@@ -80,6 +80,8 @@ describe("talk command — Mina topics", () => {
     assertOk(result);
     assert.equal(result.state.flags.minaGrantedAccess, true);
     assert.ok(result.state.discoveredItemIds.includes("item_brass_service_key"));
+    assert.ok(result.state.inventoryItemIds.includes("item_brass_service_key"));
+    assertEventTypes(result, ["npc_talked", "item_obtained", "turn_spent"]);
   });
 
   it("repeated topic does not spend a turn and does not change trust", () => {
@@ -294,6 +296,20 @@ describe("talk command — edge cases", () => {
     // But trustDelta on key topic is 0, so trust stays at 2
     state = run(state, cmd("talk", { npc: "mina", topic: "key" })).state;
     assert.equal(state.trustByNpcId.npc_mina_arlen, 2);
+  });
+
+  it("adjust_trust command changes trust only through runtime and clamps at 0..2", () => {
+    let state = run(s(), cmd("adjust_trust", {
+      npcId: "npc_mina_arlen",
+      trustDelta: 5
+    })).state;
+    assert.equal(state.trustByNpcId.npc_mina_arlen, 2);
+
+    state = run(state, cmd("adjust_trust", {
+      npcId: "npc_mina_arlen",
+      trustDelta: -5
+    })).state;
+    assert.equal(state.trustByNpcId.npc_mina_arlen, 0);
   });
 
   it("topic exhaustion tracked via talked_{gateId} flag", () => {

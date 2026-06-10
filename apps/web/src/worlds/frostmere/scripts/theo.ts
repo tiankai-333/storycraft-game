@@ -68,6 +68,7 @@ export const theoScript: NpcScript = {
         "Theo's automaton designs were his life's work, and Alden was supposed to protect them but may have been planning to sell them.",
       revealConditions:
         "Player asks about Theo's designs, his work, what Alden was doing with the designs, or why Theo seems upset about his work",
+      triggerKeywords: ["designs", "automaton", "work", "alden", "sell", "protect", "upset", "设计", "设计图", "机械", "作品", "奥登", "出售", "卖", "保护"],
       reactionWhenPressed:
         "A flicker of pride, then his voice drops: 'I am not so sure anymore.'",
     },
@@ -78,6 +79,7 @@ export const theoScript: NpcScript = {
         "Theo's soot-stained gloves match the footprints found in the Winter Garden, connecting him to the garden route.",
       revealConditions:
         "Player confronts Theo about the soot-stained gloves, the footprints in the garden, or his movement through the garden that night",
+      triggerKeywords: ["gloves", "soot", "footprints", "garden", "movement", "night", "手套", "煤灰", "脚印", "足迹", "花园", "那晚"],
       reactionWhenPressed:
         "His face drains of color: 'Those could belong to anyone.'",
     },
@@ -88,6 +90,7 @@ export const theoScript: NpcScript = {
         "The torn ledger page proves Alden was planning to sell Theo's designs, providing a clear motive.",
       revealConditions:
         "Player shows Theo the ledger page, asks about the contract or sale of his designs, or confronts him about Alden's betrayal",
+      triggerKeywords: ["ledger", "page", "contract", "sale", "sell", "designs", "betrayal", "alden", "账本", "账簿", "页面", "合同", "出售", "卖", "设计", "背叛", "奥登"],
       reactionWhenPressed:
         "He freezes, voice cracking: 'He was going to sell them and send me away.'",
     },
@@ -98,6 +101,7 @@ export const theoScript: NpcScript = {
         "If confronted with overwhelming evidence, Theo can be pushed to confess the truth about what happened that night.",
       revealConditions:
         "Player has gathered substantial evidence and Theo has been tipped off. Player offers mercy or asks for the truth gently.",
+      triggerKeywords: ["mercy", "truth", "confess", "confession", "evidence", "forgive", "怜悯", "宽恕", "真相", "认罪", "自白", "证据", "原谅"],
       reactionWhenPressed:
         "He slumps: 'You know, don't you? About everything.'",
     },

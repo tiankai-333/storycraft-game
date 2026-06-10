@@ -8,6 +8,7 @@ export type EventType =
   | "search_resolved"
   | "clue_discovered"
   | "item_discovered"
+  | "item_obtained"
   | "item_taken"
   | "turn_spent"
   | "command_rejected"

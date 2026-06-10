@@ -2,7 +2,9 @@ import type { NarrativeProvider } from "../provider";
 import type { AuditRecord } from "../types";
 import { AuditLog } from "../audit";
 import { buildNpcDialoguePrompt } from "./prompts";
-import { parseAiJson, validateDialogueResponse, reviewGateTrigger, sanitizeDialogueLeakage, sanitizePrivateKnowledgeLeakage } from "./validation";
+import { parseAiJson } from "./parse";
+import { validateDialogueResponse } from "./schema";
+import { reviewGateTrigger } from "./gate-review";
 import type {
   NpcScript,
   DialogueAiResponse,
@@ -13,7 +15,8 @@ import type {
 // ─── DialogueEngine ──────────────────────────────────────────────────
 // Handles AI-driven free-form NPC dialogue.
 // Reuses the existing NarrativeProvider.
-// Does NOT modify game state — only returns candidate triggeredTopicGateId.
+// Does NOT modify game state — only returns candidate signals.
+// The DialoguePolicy in web-services has final authority.
 
 export interface DialogueEngineConfig {
   lang: "en" | "zh";
@@ -64,15 +67,20 @@ export class DialogueEngine {
   async handleFreeFormDialogue(request: DialogueRequest): Promise<DialogueResult> {
     const startTime = Date.now();
 
+    const passthroughResult: DialogueResult = {
+      dialogue: "",
+      candidateGateId: null,
+      gateEvidence: "",
+      gateConfidence: "low",
+      candidateActionHint: null,
+      triggeredTopicGateId: null,
+      source: "passthrough",
+      latencyMs: Date.now() - startTime,
+    };
+
     // If AI is not available, return passthrough
     if (!this.isAiAvailable()) {
-      return {
-        dialogue: this.buildPassthroughDialogue(request.npcScript),
-        triggeredTopicGateId: null,
-        trustDelta: 0,
-        source: "passthrough",
-        latencyMs: Date.now() - startTime,
-      };
+      return passthroughResult;
     }
 
     // Build prompt
@@ -91,13 +99,7 @@ export class DialogueEngine {
       const raw = await this.provider.call(narrativeRequest, system, user);
       rawText = raw.text;
     } catch {
-      return {
-        dialogue: this.buildPassthroughDialogue(request.npcScript),
-        triggeredTopicGateId: null,
-        trustDelta: 0,
-        source: "passthrough",
-        latencyMs: Date.now() - startTime,
-      };
+      return passthroughResult;
     }
 
     // Parse AI JSON
@@ -105,24 +107,23 @@ export class DialogueEngine {
     try {
       parsed = parseAiJson(rawText);
     } catch {
-      // JSON parse failed — use raw text as dialogue, no gate trigger
+      // JSON parse failed — show raw AI text as dialogue (better than canned greeting)
       return {
         dialogue: rawText.slice(0, 1000) || "...",
+        candidateGateId: null,
+        gateEvidence: "",
+        gateConfidence: "low",
+        candidateActionHint: null,
         triggeredTopicGateId: null,
-        trustDelta: 0,
         source: "ai",
         latencyMs: Date.now() - startTime,
       };
     }
 
     // Validate structure
-    const validated = validateDialogueResponse(
-      parsed,
-      request.context,
-      request.npcScript
-    );
+    const validated = validateDialogueResponse(parsed);
 
-    // Gate trigger review
+    // Gate trigger review (keyword relevance + evidence quality only)
     const reviewed = reviewGateTrigger(
       validated,
       request.playerInput,
@@ -130,40 +131,23 @@ export class DialogueEngine {
       request.context
     );
 
-    // Sanitize dialogue for leaked secret content
-    const noSecretLeak = sanitizeDialogueLeakage(
-      reviewed,
-      request.npcScript,
-      request.context.validTopicGateIds,
-      this.lang
-    );
-
-    // Sanitize dialogue for private knowledge leakage at low trust
-    const sanitized = sanitizePrivateKnowledgeLeakage(
-      noSecretLeak,
-      request.npcScript,
-      request.context.currentTrust,
-      this.lang
-    );
-
     // Record audit
-    this.recordAudit(request, sanitized, startTime);
+    this.recordAudit(request, reviewed, startTime);
 
     return {
-      dialogue: sanitized.dialogue,
-      triggeredTopicGateId: sanitized.triggeredTopicGateId,
-      trustDelta: sanitized.trustDelta,
+      dialogue: reviewed.dialogue,
+      candidateGateId: reviewed.candidateGateId,
+      gateEvidence: reviewed.gateEvidence,
+      gateConfidence: reviewed.gateConfidence,
+      candidateActionHint: reviewed.candidateActionHint,
       source: "ai",
       latencyMs: Date.now() - startTime,
+      // Backward compatibility
+      triggeredTopicGateId: reviewed.candidateGateId,
     };
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────
-
-  private buildPassthroughDialogue(script: NpcScript): string {
-    const name = script.name ?? script.npcId;
-    return `${name} looks at you but does not respond to that.`;
-  }
 
   private buildMinimalRequest(request: DialogueRequest) {
     return {

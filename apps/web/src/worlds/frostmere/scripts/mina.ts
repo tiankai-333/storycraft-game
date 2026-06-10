@@ -68,6 +68,7 @@ export const minaScript: NpcScript = {
         "Mina saw Alden and Theo meeting after supper that night — Alden was carrying papers, and they both looked tense.",
       revealConditions:
         "Player asks about what Mina saw that night, or about Alden's activities before death, or about interactions between Alden and Theo",
+      triggerKeywords: ["alden", "voss", "master", "theo", "meeting", "saw", "death", "night", "奥登", "老爷", "西奥", "见面", "看到", "看见", "那晚", "死亡"],
       reactionWhenPressed:
         "Her expression tightens, then she relents: 'Master Alden was... a difficult man.'",
     },
@@ -78,6 +79,7 @@ export const minaScript: NpcScript = {
         "The servant bell from the tower rang well after midnight, but Mina knows the body was already cold when it rang — someone staged it.",
       revealConditions:
         "Player asks about the bell, the tower signal, the timing of events, or why the bell rang after death",
+      triggerKeywords: ["bell", "tower", "signal", "timing", "after death", "钟", "铃", "钟声", "铃声", "塔", "塔楼", "钟楼", "死后", "时间"],
       reactionWhenPressed:
         "She lowers her voice: 'Someone was up there, making it look like an accident.'",
     },
@@ -88,6 +90,7 @@ export const minaScript: NpcScript = {
         "Mina has a brass service key that opens the tower service stair. She can provide it to the player.",
       revealConditions:
         "Player asks about tower access, service stair, locked doors, or how to reach the bell tower",
+      triggerKeywords: ["key", "access", "tower", "service stair", "locked door", "reach", "钥匙", "上楼", "楼梯", "通道", "钟楼", "塔楼", "锁"],
       reactionWhenPressed:
         "She reaches into her apron and produces a narrow brass key.",
     },

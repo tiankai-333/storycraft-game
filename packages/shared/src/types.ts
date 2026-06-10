@@ -115,8 +115,11 @@ export interface TopicGateDefinition {
   blockedResponse: string;
   response: string;
   repeatedResponse: string;
+  /** Items revealed in the scene; the player must still take them. */
   revealsClueIds?: ClueId[];
   revealsItemIds?: ItemId[];
+  /** Items directly granted into inventory by the runtime. */
+  grantsItemIds?: ItemId[];
   trustDelta?: number;
   consequenceIds?: ConsequenceId[];
   flagChanges?: Record<string, boolean>;

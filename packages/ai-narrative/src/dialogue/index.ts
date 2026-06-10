@@ -16,4 +16,8 @@ export { DialogueEngine } from "./engine";
 export type { DialogueEngineConfig } from "./engine";
 
 export { buildNpcDialoguePrompt } from "./prompts";
-export { parseAiJson, validateDialogueResponse, reviewGateTrigger, sanitizeDialogueLeakage } from "./validation";
+export type { DialoguePromptPair } from "./prompts";
+
+export { parseAiJson } from "./parse";
+export { validateDialogueResponse } from "./schema";
+export { reviewGateTrigger, expandKeywordsBilingually } from "./gate-review";

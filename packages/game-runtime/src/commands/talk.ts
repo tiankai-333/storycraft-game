@@ -144,6 +144,25 @@ export function executeTalk(
   }
   nextState = { ...nextState, discoveredItemIds };
 
+  // Grant items directly into inventory. Granted items are also considered discovered.
+  if (topicGate.grantsItemIds && topicGate.grantsItemIds.length > 0) {
+    const grantedDiscoveredItemIds = [...nextState.discoveredItemIds];
+    const inventoryItemIds = [...nextState.inventoryItemIds];
+    for (const itemId of topicGate.grantsItemIds) {
+      if (!grantedDiscoveredItemIds.includes(itemId)) {
+        grantedDiscoveredItemIds.push(itemId);
+      }
+      if (!inventoryItemIds.includes(itemId)) {
+        inventoryItemIds.push(itemId);
+      }
+    }
+    nextState = {
+      ...nextState,
+      discoveredItemIds: grantedDiscoveredItemIds,
+      inventoryItemIds
+    };
+  }
+
   // Change trust (clamped 0-2)
   if (topicGate.trustDelta) {
     const currentTrust = nextState.trustByNpcId[npcId] ?? 0;
@@ -190,12 +209,21 @@ export function executeTalk(
     ...(topicGate.revealsItemIds ?? []).map((itemId, i) =>
       createEvent(nextState, "item_discovered", "talk", adventure.items[itemId].name, i + 2 + (topicGate.revealsClueIds?.length ?? 0))
     ),
+    ...(topicGate.grantsItemIds ?? []).map((itemId, i) =>
+      createEvent(
+        nextState,
+        "item_obtained",
+        "talk",
+        adventure.items[itemId].name,
+        i + 2 + (topicGate.revealsClueIds?.length ?? 0) + (topicGate.revealsItemIds?.length ?? 0)
+      )
+    ),
     createEvent(
       nextState,
       "turn_spent",
       "talk",
       "The conversation spends one investigation turn.",
-      2 + (topicGate.revealsClueIds?.length ?? 0) + (topicGate.revealsItemIds?.length ?? 0)
+      2 + (topicGate.revealsClueIds?.length ?? 0) + (topicGate.revealsItemIds?.length ?? 0) + (topicGate.grantsItemIds?.length ?? 0)
     )
   ];
 

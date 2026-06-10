@@ -4,6 +4,7 @@ import type {
   CommandResult,
   WorldState
 } from "../../shared/src";
+import { executeAdjustTrust } from "./commands/adjustTrust";
 import { executeAccuse, applyDawnEnding } from "./commands/accuse";
 import { executeGo } from "./commands/go";
 import { executeInventory } from "./commands/inventory";
@@ -62,6 +63,9 @@ export function executeCommand(
       break;
     case "accuse":
       result = executeAccuse(state, input, adventure);
+      break;
+    case "adjust_trust":
+      result = executeAdjustTrust(state, input, adventure);
       break;
     default:
       result = assertNever(input.verb);

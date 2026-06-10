@@ -1,7 +1,8 @@
 import type { CommandInput, VisibleState, WorldState, AdventureDefinition } from "@shared";
-import { createInitialState, executeCommand, getVisibleState, evaluateAll } from "@game-runtime";
-import { NarrativeEngine, PassthroughProvider, OpenAICompatibleProvider, DialogueEngine } from "@ai-narrative";
-import type { ConversationExchange } from "@ai-narrative";
+import { createInitialState, executeCommand, getVisibleState } from "@game-runtime";
+import { createDialogueEngine } from "../services/dialogue-provider";
+import { DialogueService } from "../services/dialogue-service";
+import type { DialogueServiceResult } from "../services/dialogue-service";
 import type { WorldPack } from "../world-registry";
 import { UI, createTranslator, type Translator, getLang, t } from "../i18n";
 import type { Lang } from "../i18n";
@@ -12,8 +13,7 @@ import { showEnding } from "./end";
 let pack: WorldPack;
 let adventure: AdventureDefinition;
 let state: WorldState;
-let engine: NarrativeEngine;
-let dialogueEngine: DialogueEngine;
+let dialogueService: DialogueService;
 let tr: Translator;
 
 interface NarEntry {
@@ -21,11 +21,10 @@ interface NarEntry {
   en: string;
   zh: string;
   cmd?: string;
-  aiSource?: "ai" | "passthrough";
+  aiSource?: "ai";
 }
 
 let narHistory: NarEntry[] = [];
-let conversationHistory: Map<string, ConversationExchange[]> = new Map();
 let isProcessing = false;
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -37,10 +36,9 @@ export async function startGame(worldPack: WorldPack): Promise<void> {
   const lang = getLang();
   tr = createTranslator(pack, lang);
 
-  await initEngine(lang);
+  await initDialogueService(lang);
   state = createInitialState(adventure);
   narHistory = [];
-  conversationHistory = new Map();
   isProcessing = false;
 
   const log = $("narrative-log");
@@ -64,27 +62,20 @@ export function getPack(): WorldPack {
 }
 
 // --- Narrative Engine ---
-async function initEngine(lang: Lang): Promise<void> {
-  const key =
-    new URLSearchParams(window.location.search).get("apiKey") ||
-    localStorage.getItem("storycraft_api_key");
-  let provider;
-  if (key) {
-    provider = new OpenAICompatibleProvider({
-      apiKey: key,
-      baseUrl: localStorage.getItem("storycraft_api_base") || "https://api.deepseek.com",
-      model: localStorage.getItem("storycraft_model") || "deepseek-v4-pro",
-      maxTokens: 300,
-      temperature: 0.7,
-    });
-  } else {
-    provider = new PassthroughProvider();
-  }
-  engine = new NarrativeEngine(provider, { lang });
-  await engine.initialize();
+async function initDialogueService(lang: Lang): Promise<void> {
+  const engine = await createDialogueEngine(lang);
+  dialogueService = new DialogueService(engine);
+}
 
-  dialogueEngine = new DialogueEngine(provider, { lang });
-  await dialogueEngine.initialize();
+/**
+ * Rebuild dialogueService in-place after settings change.
+ * Safe to call before game starts (no-op).
+ * Preserves all game state; only the AI provider/engine is rebuilt.
+ */
+export async function reinitDialogueService(): Promise<void> {
+  if (!dialogueService) return;
+  await initDialogueService(getLang());
+  renderVisibleState(getVisibleState(state, adventure));
 }
 
 // --- Command handling ---
@@ -116,7 +107,7 @@ async function handleCommand() {
   const firstWord = raw.toLowerCase().split(/\s+/)[0];
 
   // If the first word is NOT a known command verb, try AI dialogue with selected NPC
-  if (!KNOWN_VERBS.has(firstWord) && dialogueEngine?.isAiAvailable()) {
+  if (!KNOWN_VERBS.has(firstWord)) {
     const selectedNpc = getSelectedNpcId();
     if (selectedNpc) {
       await executeAiDialogue(selectedNpc, raw);
@@ -141,40 +132,6 @@ async function handleCommand() {
 function getSelectedNpcId(): string | undefined {
   const sel = $("npc-select") as HTMLSelectElement;
   return sel.value || undefined;
-}
-
-/**
- * When AI is unavailable, try to match player input to a known topic alias.
- * Checks both English aliases (from topicGates) and Chinese labels (from meta.npcTopics).
- * Returns the first matching alias, or undefined.
- */
-function findMatchingTopic(npcId: string, input: string): string | undefined {
-  const lower = input.toLowerCase();
-
-  // Build a list of { alias, labelZh, labelEn } for this NPC
-  const topics = pack.meta.npcTopics[npcId] ?? [];
-  for (const tp of topics) {
-    if (
-      lower.includes(tp.alias.toLowerCase()) ||
-      lower.includes(tp.zh) ||
-      lower.includes(tp.en.toLowerCase())
-    ) {
-      return tp.alias;
-    }
-  }
-
-  // Also check raw topicGate aliases as fallback
-  const gates = adventure.topicGates ?? {};
-  for (const gate of Object.values(gates)) {
-    if (gate.npcId !== npcId) continue;
-    for (const alias of gate.topicAliases) {
-      if (lower.includes(alias.toLowerCase())) {
-        return alias;
-      }
-    }
-  }
-
-  return undefined;
 }
 
 /**
@@ -266,7 +223,6 @@ function showSpinner(): HTMLElement {
 async function executeAiDialogue(npcId: string, playerInput: string): Promise<void> {
   isProcessing = true;
   setInputsDisabled(true);
-  let exchange: ConversationExchange | null = null;
 
   // Show player's message in narrative log FIRST, then spinner below it
   const npcAlias = pack.meta.npcAliases[npcId] ?? npcId;
@@ -279,223 +235,96 @@ async function executeAiDialogue(npcId: string, playerInput: string): Promise<vo
   const spinnerEl = showSpinner();
 
   try {
-    // Get NPC script
-    const npcScript = pack.npcScripts?.[npcId];
-    if (!npcScript) {
-      appendNar("fail", "NPC script not found.");
-      return;
-    }
-
-    // Get conversation history
-    const history = conversationHistory.get(npcId) ?? [];
-
-    // Build dialogue context from current game state
-    const topicGates = adventure.topicGates ?? {};
-    const validGateIds = Object.values(topicGates)
-      .filter((g) => g.npcId === npcId)
-      .filter((g) => !state.flags[`talked_${g.id}`])
-      .filter((g) => evaluateAll(g.requires, state, adventure))
-      .map((g) => g.id);
-    const exhaustedGateIds = Object.values(topicGates)
-      .filter((g) => g.npcId === npcId && state.flags[`talked_${g.id}`] === true)
-      .map((g) => g.id);
-
-    const context = {
-      currentRoom: adventure.rooms[state.currentRoomId as keyof typeof adventure.rooms]?.name ?? "",
-      currentTurn: state.turnIndex,
-      turnsRemaining: state.turnsRemaining,
-      playerInventory: state.inventoryItemIds.map(
-        (id) => adventure.items[id as keyof typeof adventure.items]?.name ?? id,
-      ),
-      discoveredClues: Object.keys(state.discoveredCluesById).map(
-        (id) => adventure.clues[id as keyof typeof adventure.clues]?.title ?? id,
-      ),
-      currentTrust: state.trustByNpcId[npcId] ?? 0,
-      exhaustedTopicGateIds: exhaustedGateIds,
-      recentExchanges: history,
-      validTopicGateIds: validGateIds,
-    };
-
-    // Call dialogue engine
-    const result = await dialogueEngine.handleFreeFormDialogue({
-      npcScript,
-      playerInput,
-      context,
+    const result = await dialogueService.handleDialogue({
+      npcId, playerInput, state, adventure, pack,
     });
+    state = result.state;
 
-    // AI failed / unavailable → fall back to keyword-matched game-runtime talk
-    if (result.source === "passthrough") {
-      // Fix 2: guard against short input triggering gates accidentally
-      const matchedTopic = playerInput.length >= 4
-        ? findMatchingTopic(npcId, playerInput)
-        : undefined;
-      if (matchedTopic) {
-        const talkResult = executeCommand(
-          state,
-          { verb: "talk", npc: npcAlias, topic: matchedTopic },
-          adventure,
-        );
-        state = talkResult.state;
-        // Fix 3: check ok before showing as success
-        const msgEn = talkResult.message;
-        const msgZh = tr.translateMsg(msgEn);
-        if (talkResult.ok) {
-          narHistory.push({ css: "ok", en: msgEn, zh: msgZh });
-          appendNar("ok", tr.lang === "zh" ? msgZh : msgEn);
-        } else {
-          narHistory.push({ css: "fail", en: msgEn, zh: msgZh });
-          appendNar("fail", tr.lang === "zh" ? msgZh : msgEn);
-        }
-        exchange = { playerInput, npcResponse: msgEn, triggeredTopicGateId: null, timestamp: Date.now() };
-        renderVisibleState(talkResult.visibleState);
-      } else {
-        // No keyword match — show NPC's default greeting
-        const talkResult = executeCommand(
-          state,
-          { verb: "talk", npc: npcAlias },
-          adventure,
-        );
-        state = talkResult.state;
-        const msgEn = talkResult.message;
-        const msgZh = tr.translateMsg(msgEn);
-        narHistory.push({ css: "ok", en: msgEn, zh: msgZh });
-        appendNar("ok", tr.lang === "zh" ? msgZh : msgEn);
-        exchange = { playerInput, npcResponse: msgEn, triggeredTopicGateId: null, timestamp: Date.now() };
-        renderVisibleState(talkResult.visibleState);
-      }
+    // --- Render error result (AI provider failed) ---
+    if (result.source === "error") {
+      const msgEn = "AI service temporarily unavailable. Please try again.";
+      const msgZh = "AI 服务暂时不可用，请重试。";
+      narHistory.push({ css: "fail", en: msgEn, zh: msgZh });
+      appendNar("fail", tr.lang === "zh" ? msgZh : msgEn);
+      renderVisibleState(result.visibleState);
       return;
     }
 
-    // --- AI succeeded below ---
+    // --- Render AI dialogue text ---
     const aiBadge = ' <span class="ai-badge" title="AI dialogue">✦</span>';
-    narHistory.push({ css: "ok", en: result.dialogue, zh: result.dialogue, aiSource: result.source });
-
+    narHistory.push({ css: "ok", en: result.dialogue, zh: result.dialogue, aiSource: "ai" });
     const el = document.createElement("div");
     el.className = "narrative-entry ok";
     el.innerHTML = `${esc(result.dialogue)}${aiBadge}`;
     $("narrative-log").appendChild(el);
 
-    // Build conversation exchange for AI response
-    exchange = {
-      playerInput,
-      npcResponse: result.dialogue,
-      triggeredTopicGateId: result.triggeredTopicGateId,
-      timestamp: Date.now(),
-    };
-
-    // If gate was triggered (or can be matched from input), apply game effects via game-runtime
-    {
-      // Resolve gate: AI-triggered first, then keyword fallback
-      let resolvedGateId = result.triggeredTopicGateId;
-      if (!resolvedGateId) {
-        const matched = playerInput.length >= 4
-          ? findMatchingTopic(npcId, playerInput)
-          : undefined;
-        // Only use fallback if the matched gate is in the valid set (conditions met)
-        if (matched) {
-          for (const gate of Object.values(topicGates)) {
-            if (gate.npcId === npcId && gate.topicAliases.includes(matched) && validGateIds.includes(gate.id)) {
-              resolvedGateId = gate.id;
-              break;
-            }
-          }
-        }
+    // Render gate effects (clues, items, trust from gate, turn spent)
+    if (result.gateEffects) {
+      const effectMessages: string[] = [];
+      for (const clueId of result.gateEffects.clueIds) {
+        effectMessages.push(
+          `🔍 ${tr.lang === "zh" ? "发现线索" : "Clue discovered"}: ${tr.clue(clueId)}`,
+        );
       }
-
-      if (resolvedGateId) {
-        const gate = topicGates[resolvedGateId];
-        if (gate) {
-          const topic = gate.topicAliases[0];
-          const talkResult = executeCommand(
-            state,
-            { verb: "talk", npc: npcAlias, topic },
-            adventure,
-          );
-          state = talkResult.state;
-
-          // Only show effect messages if the gate actually fired (conditions met)
-          if (talkResult.ok && talkResult.turnSpent) {
-            const effectMessages: string[] = [];
-            for (const clueId of gate.revealsClueIds ?? []) {
-              effectMessages.push(
-                `🔍 ${tr.lang === "zh" ? "发现线索" : "Clue discovered"}: ${tr.clue(clueId)}`,
-              );
-            }
-            for (const itemId of gate.revealsItemIds ?? []) {
-              effectMessages.push(
-                `📦 ${tr.lang === "zh" ? "获得物品" : "Item discovered"}: ${tr.item(itemId)}`,
-              );
-            }
-            if (gate.trustDelta) {
-              const newTrust = state.trustByNpcId[npcId] ?? 0;
-              effectMessages.push(
-                `💚 ${tr.npc(npcId)} ${tr.lang === "zh" ? `信任度变为 ${newTrust}` : `trust is now ${newTrust}`}`,
-              );
-            }
-            effectMessages.push(
-              `⏳ ${tr.lang === "zh" ? "消耗了 1 个调查回合" : "Spent 1 investigation turn"}`,
-            );
-
-            if (effectMessages.length > 0) {
-              const effectEl = document.createElement("div");
-              effectEl.className = "narrative-entry ok";
-              effectEl.innerHTML = effectMessages.map((m) => `<div>${esc(m)}</div>`).join("");
-              $("narrative-log").appendChild(effectEl);
-            }
-          } else if (!talkResult.ok) {
-            // Gate was blocked (conditions not met) — show NPC's reluctance
-            appendNar("fail", talkResult.message);
-          }
-
-          renderVisibleState(talkResult.visibleState);
-
-          // Check for game end
-          if (talkResult.state.isComplete && talkResult.state.endingId) {
-            setTimeout(
-              () =>
-                showEnding(
-                  tr,
-                  talkResult.state,
-                  () => startGame(pack),
-                  () => startGame(pack),
-                ),
-              800,
-            );
-          }
-        }
+      for (const itemId of result.gateEffects.revealedItemIds) {
+        effectMessages.push(
+          `📦 ${tr.lang === "zh" ? "发现物品" : "Item discovered"}: ${tr.item(itemId)}`,
+        );
+      }
+      for (const itemId of result.gateEffects.grantedItemIds) {
+        effectMessages.push(
+          `📦 ${tr.lang === "zh" ? "获得物品" : "Item obtained"}: ${tr.item(itemId)}`,
+        );
+      }
+      if (result.gateEffects.trustChange) {
+        const newTrust = state.trustByNpcId[npcId] ?? 0;
+        effectMessages.push(
+          `💚 ${tr.npc(npcId)} ${tr.lang === "zh" ? `信任度变为 ${newTrust}` : `trust is now ${newTrust}`}`,
+        );
+      }
+      if (result.gateEffects.turnSpent) {
+        effectMessages.push(
+          `⏳ ${tr.lang === "zh" ? "消耗了 1 个调查回合" : "Spent 1 investigation turn"}`,
+        );
+      }
+      if (effectMessages.length > 0) {
+        const effectEl = document.createElement("div");
+        effectEl.className = "narrative-entry ok";
+        effectEl.innerHTML = effectMessages.map((m) => `<div>${esc(m)}</div>`).join("");
+        $("narrative-log").appendChild(effectEl);
       }
     }
 
-    // Apply AI-driven trust change (independent of gates)
-    if (result.trustDelta !== 0) {
-      const currentTrust = state.trustByNpcId[npcId] ?? 0;
-      const newTrust = Math.max(0, Math.min(2, currentTrust + result.trustDelta)) as 0 | 1 | 2;
-      if (newTrust !== currentTrust) {
-        state = {
-          ...state,
-          trustByNpcId: { ...state.trustByNpcId, [npcId]: newTrust }
-        };
-        const trustMsg = `💚 ${tr.npc(npcId)} ${tr.lang === "zh" ? `信任度变为 ${newTrust}` : `trust is now ${newTrust}`}`;
-        const trustEl = document.createElement("div");
-        trustEl.className = "narrative-entry ok";
-        trustEl.innerHTML = esc(trustMsg);
-        $("narrative-log").appendChild(trustEl);
-        renderVisibleState(getVisibleState(state, adventure));
-      }
+    // Phase 4: No blocked gate message in AI dialogue path.
+    // The AI dialogue IS the NPC voice; runtime blockedResponse is suppressed.
+
+    // Render policy-decided trust delta (NOT raw AI trust)
+    if (result.trustDeltaApplied !== 0) {
+      const newTrust = state.trustByNpcId[npcId] ?? 0;
+      const trustMsg = `💚 ${tr.npc(npcId)} ${tr.lang === "zh" ? `信任度变为 ${newTrust}` : `trust is now ${newTrust}`}`;
+      const trustEl = document.createElement("div");
+      trustEl.className = "narrative-entry ok";
+      trustEl.innerHTML = esc(trustMsg);
+      $("narrative-log").appendChild(trustEl);
+    }
+
+    renderVisibleState(result.visibleState);
+
+    // Check for game end
+    if (result.isComplete && result.endingId) {
+      setTimeout(() => showEnding(tr, state, () => startGame(pack), () => startGame(pack)), 800);
     }
   } catch {
+    const msgEn = "Dialogue error. Please try again.";
+    const msgZh = "对话出错，请重试。";
+    narHistory.push({ css: "fail", en: msgEn, zh: msgZh });
     appendNar(
       "fail",
-      tr.lang === "zh" ? "对话出错，请重试。" : "Dialogue error. Please try again.",
+      tr.lang === "zh" ? msgZh : msgEn,
     );
   } finally {
     // Remove spinner
     spinnerEl.remove();
-    // Fix 1: update conversation history in all branches
-    if (exchange) {
-      const prev = conversationHistory.get(npcId) ?? [];
-      conversationHistory.set(npcId, [...prev, exchange].slice(-5));
-    }
     isProcessing = false;
     setInputsDisabled(false);
     ($("narrative-log").parentElement!).scrollTop = ($("narrative-log").parentElement!).scrollHeight;
@@ -736,7 +565,7 @@ function renderNpcPanel(v: VisibleState): void {
     div.appendChild(nameSpan);
 
     // Fixed topic buttons (shown when AI unavailable as fallback)
-    if (!dialogueEngine?.isAiAvailable()) {
+    if (!dialogueService?.isAiAvailable()) {
       const topics = pack.meta.npcTopics[npc.id];
       if (topics) {
         const topicRow = document.createElement("div");
@@ -982,8 +811,6 @@ export function refreshLang(): void {
   const lang = getLang();
   // Recreate translator with new language
   tr = createTranslator(pack, lang);
-  // Update AI engine language
-  engine.setLang(lang);
   // Re-render narrative log
   replayNarLog();
   // Re-render right panel (room, NPCs, items, clues, trust, consequences)

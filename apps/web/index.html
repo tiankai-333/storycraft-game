@@ -113,24 +113,43 @@
 
   <!-- AI 设置弹窗 -->
   <div id="settings-modal" class="overlay hidden">
-    <div class="overlay-content" style="text-align:left;max-width:420px">
+    <div class="overlay-content" style="text-align:left;width:420px">
       <button id="settings-close" class="lang-btn" title="关闭">✕</button>
       <h2 style="color:var(--text-highlight);margin-bottom:0.75rem" id="settings-title">AI 叙事设置</h2>
-      <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text-secondary)">
-        API Key
-        <input type="password" id="settings-api-key" placeholder="sk-..." style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
-      </label>
-      <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text-secondary)">
-        Base URL
-        <input type="text" id="settings-base-url" placeholder="https://api.deepseek.com" style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
-      </label>
-      <label style="display:block;margin-bottom:0.75rem;font-size:0.85rem;color:var(--text-secondary)">
-        Model
-        <input type="text" id="settings-model" placeholder="deepseek-v4-pro" style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
-      </label>
-      <div style="display:flex;gap:0.5rem;justify-content:flex-end">
-        <button id="settings-save" class="btn-primary" style="padding:0.4rem 1.2rem;font-size:0.85rem">保存</button>
+
+      <!-- Mode toggle -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+        <button id="settings-mode-normal" style="flex:1;padding:0.4rem 0;font-size:0.85rem;background:var(--btn-bg);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;cursor:pointer;border-radius:3px">普通模式</button>
+        <button id="settings-mode-smart" style="flex:1;padding:0.4rem 0;font-size:0.85rem;background:var(--btn-bg);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;cursor:pointer;border-radius:3px">智能模式</button>
       </div>
+      <p id="settings-mode-desc" style="margin-bottom:0.75rem;font-size:0.8rem;color:var(--text-secondary);min-height:1.6em"></p>
+
+      <!-- Smart mode config (hidden in normal mode, but preserves height) -->
+      <div id="settings-smart-config" style="visibility:hidden;min-height:280px">
+        <!-- Config source toggle -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+          <button id="settings-src-env" style="flex:1;padding:0.35rem 0;font-size:0.8rem;background:var(--btn-bg);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;cursor:pointer;border-radius:3px">环境配置</button>
+          <button id="settings-src-custom" style="flex:1;padding:0.35rem 0;font-size:0.8rem;background:var(--btn-bg);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;cursor:pointer;border-radius:3px">自定义配置</button>
+        </div>
+        <!-- Custom config fields (hidden when env is selected) -->
+        <div id="settings-custom-fields">
+          <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text-secondary)">
+            API Key
+            <input type="password" id="settings-api-key" placeholder="sk-..." style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
+          </label>
+          <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text-secondary)">
+            Base URL
+            <input type="text" id="settings-base-url" placeholder="https://api.deepseek.com" style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
+          </label>
+          <label style="display:block;margin-bottom:0.75rem;font-size:0.85rem;color:var(--text-secondary)">
+            Model
+            <input type="text" id="settings-model" placeholder="deepseek-v4-pro" style="display:block;width:100%;margin-top:0.2rem;padding:0.4rem 0.6rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;font-size:0.9rem;outline:none" />
+          </label>
+        </div>
+      </div>
+
+      <button id="settings-save" class="btn-primary" style="display:block;width:100%;padding:0.4rem 1.2rem;font-size:0.85rem;margin-top:0.5rem">保存</button>
+
       <p id="settings-status" style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-secondary);min-height:1.2em"></p>
     </div>
   </div>

@@ -9,7 +9,8 @@ export type CommandVerb =
   | "talk"
   | "use"
   | "inventory"
-  | "accuse";
+  | "accuse"
+  | "adjust_trust";
 
 export interface CommandInput {
   verb: CommandVerb;
@@ -17,6 +18,8 @@ export interface CommandInput {
   topic?: string;
   item?: string;
   npc?: string;
+  npcId?: string;
+  trustDelta?: number;
   theory?: string;
   mode?: string;
 }
