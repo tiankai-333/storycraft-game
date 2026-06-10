@@ -1,16 +1,15 @@
 import { t } from "../i18n";
-import { getKeySource, getNarrationMode, type NarrationMode } from "../services/dialogue-provider";
+import { getNarrationMode, type NarrationMode } from "../services/dialogue-provider";
+import { getKeyConfig, testKeyConfig, saveKeyConfig, deleteKeyConfig, isLoggedIn, getToken } from "../services/api-client";
 import { reinitDialogueService } from "./game";
 
 // ─── Pending state (applied only on Save) ───────────────────────────
 let pendingMode: NarrationMode;
-let pendingSource: "env" | "custom";
+let pendingSource: "host" | "custom";
 
 // ─── Shared button styles ───────────────────────────────────────────
 const activeStyle = "flex:1;padding:0.4rem 0;font-size:0.85rem;background:var(--btn-bg);color:var(--text-highlight);border:2px solid var(--text-highlight);font-family:inherit;font-weight:bold;cursor:pointer;border-radius:3px";
 const inactiveStyle = "flex:1;padding:0.4rem 0;font-size:0.85rem;background:var(--btn-bg);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;cursor:pointer;border-radius:3px";
-const srcActiveStyle = "flex:1;padding:0.35rem 0;font-size:0.8rem;background:var(--btn-bg);color:var(--text-highlight);border:2px solid var(--text-highlight);font-family:inherit;font-weight:bold;cursor:pointer;border-radius:3px";
-const srcInactiveStyle = "flex:1;padding:0.35rem 0;font-size:0.8rem;background:var(--btn-bg);color:var(--text-primary);border:1px solid var(--border);font-family:inherit;cursor:pointer;border-radius:3px";
 
 // ─── Init ───────────────────────────────────────────────────────────
 export function initSettings(): void {
@@ -20,24 +19,28 @@ export function initSettings(): void {
   document.getElementById("settings-save")!.addEventListener("click", saveSettings);
   document.getElementById("settings-mode-normal")?.addEventListener("click", () => switchMode("normal"));
   document.getElementById("settings-mode-smart")?.addEventListener("click", () => switchMode("smart"));
-  document.getElementById("settings-src-env")?.addEventListener("click", () => switchSource("env"));
   document.getElementById("settings-src-custom")?.addEventListener("click", () => switchSource("custom"));
+  document.getElementById("settings-test-btn")?.addEventListener("click", handleTest);
 }
 
 // ─── Open / Close ───────────────────────────────────────────────────
-export function openSettings(): void {
+export async function openSettings(): Promise<void> {
   (document.getElementById("settings-modal") as HTMLElement).classList.remove("hidden");
   (document.getElementById("settings-title") as HTMLElement).textContent = t("叙事设置", "Narrator Settings");
   (document.getElementById("settings-save") as HTMLElement).textContent = t("保存", "Save");
 
-  // Read current real state into pending
   pendingMode = getNarrationMode();
-  pendingSource = getKeySource() === "custom" ? "custom" : "env";
+
+  // Determine source from backend
+  if (isLoggedIn()) {
+    pendingSource = "custom"; // logged-in user can use custom
+  } else {
+    pendingSource = "host"; // guest uses host
+  }
 
   renderMode(pendingMode);
-  renderSource();
+  await renderSource();
 
-  // Clear status
   (document.getElementById("settings-status") as HTMLElement).textContent = "";
 }
 
@@ -45,7 +48,7 @@ function closeSettings(): void {
   (document.getElementById("settings-modal") as HTMLElement).classList.add("hidden");
 }
 
-// ─── Mode switching (visual only, saved on Save) ────────────────────
+// ─── Mode switching ─────────────────────────────────────────────────
 
 function renderMode(mode: NarrationMode): void {
   const normalBtn = document.getElementById("settings-mode-normal") as HTMLElement;
@@ -63,7 +66,7 @@ function renderMode(mode: NarrationMode): void {
     smartBtn.style.cssText = activeStyle;
     descEl.textContent = t("智能模式：NPC 由 AI 驱动自由对话。", "Smart mode: NPCs are driven by AI for free-form dialogue.");
     configEl.style.display = "";
-    renderSource();
+    void renderSource(); // async, fire-and-forget
   }
 }
 
@@ -72,38 +75,91 @@ function switchMode(mode: NarrationMode): void {
   renderMode(mode);
 }
 
-// ─── Config source switching (visual only, saved on Save) ───────────
+// ─── Config source display ─────────────────────────────────────────
 
-function renderSource(): void {
-  const envBtn = document.getElementById("settings-src-env") as HTMLElement;
-  const customBtn = document.getElementById("settings-src-custom") as HTMLElement;
-  const fieldsEl = document.getElementById("settings-custom-fields") as HTMLElement;
+async function renderSource(): Promise<void> {
+  const envInfo = document.getElementById("settings-env-info") as HTMLElement;
+  const envModel = document.getElementById("settings-env-model") as HTMLElement;
+  const customFields = document.getElementById("settings-custom-fields") as HTMLElement;
+  const customToggle = document.getElementById("settings-src-custom") as HTMLElement;
 
-  if (pendingSource === "env") {
-    envBtn.style.cssText = srcActiveStyle;
-    customBtn.style.cssText = srcInactiveStyle;
-    fieldsEl.style.display = "none";
+  // Hide custom fields by default
+  customFields.style.display = "none";
+
+  if (!isLoggedIn()) {
+    // Guest mode — only show host info
+    customToggle.style.display = "none";
+
+    try {
+      const config = await getKeyConfig();
+      if (config) {
+        envModel.textContent = `${config.model} (${config.baseUrl.replace(/https?:\/\//, "").split("/")[0]})`;
+        envInfo.style.display = "";
+      } else {
+        envModel.textContent = t("房主还没配置密钥", "Host hasn't configured a key yet");
+        envInfo.style.display = "";
+      }
+    } catch {
+      envModel.textContent = t("无法连接服务器", "Cannot connect to server");
+      envInfo.style.display = "";
+    }
   } else {
-    envBtn.style.cssText = srcInactiveStyle;
-    customBtn.style.cssText = srcActiveStyle;
-    fieldsEl.style.display = "";
+    // Logged in — show both options
+    customToggle.style.display = "";
 
-    // Populate from localStorage
-    (document.getElementById("settings-api-key") as HTMLInputElement).value =
-      localStorage.getItem("storycraft_api_key") || "";
-    (document.getElementById("settings-base-url") as HTMLInputElement).value =
-      localStorage.getItem("storycraft_api_base") || "";
-    (document.getElementById("settings-model") as HTMLInputElement).value =
-      localStorage.getItem("storycraft_model") || "";
+    if (pendingSource === "host") {
+      // Using host key
+      (document.getElementById("settings-src-env") as HTMLElement).style.cssText = activeStyle;
+      customToggle.style.cssText = inactiveStyle;
+      envInfo.style.display = "";
+      customFields.style.display = "none";
+
+      try {
+        const config = await getKeyConfig();
+        envModel.textContent = config ? `${config.model} (${config.baseUrl.replace(/https?:\/\//, "").split("/")[0]})` : t("无可用密钥", "No key available");
+      } catch {
+        envModel.textContent = t("无法连接服务器", "Cannot connect to server");
+      }
+    } else {
+      // Custom key
+      (document.getElementById("settings-src-env") as HTMLElement).style.cssText = inactiveStyle;
+      customToggle.style.cssText = activeStyle;
+      envInfo.style.display = "none";
+      customFields.style.display = "";
+    }
   }
 }
 
-function switchSource(src: "env" | "custom"): void {
+function switchSource(src: "host" | "custom"): void {
   pendingSource = src;
   renderSource();
 }
 
-// ─── Save (the ONLY place that writes state) ────────────────────────
+// ─── Test connectivity ──────────────────────────────────────────────
+
+async function handleTest(): Promise<void> {
+  const statusEl = document.getElementById("settings-status") as HTMLElement;
+  const testBtn = document.getElementById("settings-test-btn") as HTMLElement;
+
+  testBtn.textContent = t("测试中…", "Testing…");
+  testBtn.setAttribute("disabled", "true");
+
+  try {
+    const result = await testKeyConfig();
+    if (result.ok) {
+      statusEl.textContent = t("✓ 连接成功，房主的 AI 正常运行", "✓ Connected, host's AI is running");
+    } else {
+      statusEl.textContent = t(`✗ 连接失败: ${result.error}`, `✗ Connection failed: ${result.error}`);
+    }
+  } catch (err: any) {
+    statusEl.textContent = t(`✗ 测试出错: ${err.message}`, `✗ Test error: ${err.message}`);
+  } finally {
+    testBtn.textContent = t("测试连接", "Test Connection");
+    testBtn.removeAttribute("disabled");
+  }
+}
+
+// ─── Save ───────────────────────────────────────────────────────────
 
 async function saveSettings(): Promise<void> {
   const statusEl = document.getElementById("settings-status") as HTMLElement;
@@ -115,49 +171,42 @@ async function saveSettings(): Promise<void> {
     localStorage.setItem("storycraft_mode", "smart");
   }
 
-  // 2. Write config source
-  if (pendingSource === "env") {
-    localStorage.removeItem("storycraft_api_key");
-    localStorage.removeItem("storycraft_api_base");
-    localStorage.removeItem("storycraft_model");
+  // 2. Handle config source
+  if (!isLoggedIn()) {
+    // Guest — cannot save custom config
+    statusEl.textContent = t("✓ 已保存", "✓ Saved");
+  } else if (pendingSource === "host") {
+    // Delete own key, fall back to host
+    try {
+      await deleteKeyConfig();
+      statusEl.textContent = t("✓ 成功，悄悄连上了房主的钱包", "✓ Success, quietly connected to host's wallet");
+    } catch {
+      statusEl.textContent = t("✗ 房主的钱包被藏起来了", "✗ Host's wallet is hidden");
+    }
   } else {
+    // Save custom key
     const key = (document.getElementById("settings-api-key") as HTMLInputElement).value.trim();
     const base = (document.getElementById("settings-base-url") as HTMLInputElement).value.trim();
     const model = (document.getElementById("settings-model") as HTMLInputElement).value.trim();
-    if (key) localStorage.setItem("storycraft_api_key", key);
-    else localStorage.removeItem("storycraft_api_key");
-    if (base) localStorage.setItem("storycraft_api_base", base);
-    else localStorage.removeItem("storycraft_api_base");
-    if (model) localStorage.setItem("storycraft_model", model);
-    else localStorage.removeItem("storycraft_model");
-  }
 
-  // 3. Apply
-  if (pendingMode === "normal") {
-    statusEl.textContent = t("✓ 已保存", "✓ Saved");
-  } else if (pendingSource === "env") {
-    statusEl.textContent = t("悄悄连上了房主的钱包…", "Quietly connecting to host's wallet…");
-  } else {
-    statusEl.textContent = t("正在为 NPC 注入灵魂…", "Injecting souls into NPCs…");
-  }
-  try {
-    await reinitDialogueService();
-    if (pendingSource === "env") {
-      statusEl.textContent = t("✓ 成功，悄悄连上了房主的钱包", "✓ Success, quietly connected to host's wallet");
-    } else if (pendingMode !== "normal") {
-      statusEl.textContent = t("✓ NPC 灵魂注入完成", "✓ NPC soul injection complete");
+    if (!key) {
+      statusEl.textContent = t("请输入 API Key", "Please enter an API Key");
+      return;
     }
-  } catch {
-    if (pendingSource === "env") {
-      statusEl.textContent = t("✗ 房主的钱包被藏起来了", "✗ Host's wallet is hidden");
-    } else {
+
+    statusEl.textContent = t("正在为 NPC 注入灵魂…", "Injecting souls into NPCs…");
+    try {
+      await saveKeyConfig({ apiKey: key, baseUrl: base || "https://api.deepseek.com/v1", model: model || "deepseek-v4-pro" });
+      statusEl.textContent = t("✓ NPC 灵魂注入完成", "✓ NPC soul injection complete");
+    } catch {
       statusEl.textContent = t("✗ 灵魂注入失败，请检查配置", "✗ Soul injection failed, check config");
     }
   }
 
-  // 4. Re-read actual state and refresh UI
-  pendingMode = getNarrationMode();
-  pendingSource = getKeySource() === "custom" ? "custom" : "env";
-  renderMode(pendingMode);
-  renderSource();
+  // 3. Rebuild engine
+  try {
+    await reinitDialogueService();
+  } catch {
+    // Engine rebuild may fail silently for guest without game started
+  }
 }

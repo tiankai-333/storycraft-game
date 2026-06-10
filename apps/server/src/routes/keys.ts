@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomUUID } from "crypto";
 import { getDb, saveDb } from "../db/client.js";
 import { encrypt, decrypt } from "../crypto.js";
-import { authMiddleware, type AuthPayload } from "../middleware/auth.js";
+import { authMiddleware, optionalAuth, type AuthPayload } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -18,18 +18,20 @@ function queryFirst(sql: string, params: any[]): Record<string, any> | null {
   return obj;
 }
 
-// GET /api/keys — resolve effective key config (own > host)
-router.get("/", authMiddleware, (_req, res) => {
-  const user = (_req as any).user as AuthPayload;
+// GET /api/keys — guest sees host key; logged-in sees own > host
+router.get("/", optionalAuth, (_req, res) => {
+  const user = (_req as any).user as AuthPayload | undefined;
 
-  // Try user's own key first
-  const own = queryFirst("SELECT base_url, model, provider FROM api_keys WHERE user_id = ? AND is_host = 0", [user.userId]);
-  if (own) {
-    res.json({ source: "custom", baseUrl: own.base_url, model: own.model, provider: own.provider });
-    return;
+  // Logged-in: try own key first
+  if (user) {
+    const own = queryFirst("SELECT base_url, model, provider FROM api_keys WHERE user_id = ? AND is_host = 0", [user.userId]);
+    if (own) {
+      res.json({ source: "custom", baseUrl: own.base_url, model: own.model, provider: own.provider });
+      return;
+    }
   }
 
-  // Fall back to host key
+  // Guest or fallback: host key
   const host = queryFirst("SELECT base_url, model, provider FROM api_keys WHERE is_host = 1 LIMIT 1", []);
   if (host) {
     res.json({ source: "host", baseUrl: host.base_url, model: host.model, provider: host.provider });
@@ -39,7 +41,7 @@ router.get("/", authMiddleware, (_req, res) => {
   res.json(null);
 });
 
-// POST /api/keys — save key
+// POST /api/keys — save key (auth required)
 router.post("/", authMiddleware, (req, res) => {
   const user = (req as any).user as AuthPayload;
   const { apiKey, baseUrl, model, provider } = req.body;
@@ -65,7 +67,7 @@ router.post("/", authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// DELETE /api/keys — remove own key
+// DELETE /api/keys — remove own key (auth required)
 router.delete("/", authMiddleware, (req, res) => {
   const user = (req as any).user as AuthPayload;
   const db = getDb();
@@ -74,11 +76,14 @@ router.delete("/", authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/keys/test — test connectivity
-router.post("/test", authMiddleware, async (_req, res) => {
-  const user = (_req as any).user as AuthPayload;
+// POST /api/keys/test — guest tests host key; logged-in tests own > host
+router.post("/test", optionalAuth, async (_req, res) => {
+  const user = (_req as any).user as AuthPayload | undefined;
 
-  let row = queryFirst("SELECT api_key, base_url, model FROM api_keys WHERE user_id = ? AND is_host = 0", [user.userId]);
+  let row: Record<string, any> | null = null;
+  if (user) {
+    row = queryFirst("SELECT api_key, base_url, model FROM api_keys WHERE user_id = ? AND is_host = 0", [user.userId]);
+  }
   if (!row) {
     row = queryFirst("SELECT api_key, base_url, model FROM api_keys WHERE is_host = 1 LIMIT 1", []);
   }

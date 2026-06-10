@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getDb } from "../db/client.js";
 import { decrypt } from "../crypto.js";
-import { authMiddleware, type AuthPayload } from "../middleware/auth.js";
+import { optionalAuth, type AuthPayload } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -17,8 +17,8 @@ function queryFirst(sql: string, params: any[]): Record<string, any> | null {
   return obj;
 }
 
-// POST /api/ai/chat — proxy to AI provider
-router.post("/chat", authMiddleware, async (req, res) => {
+// POST /api/ai/chat — proxy to AI provider (guest uses host key)
+router.post("/chat", optionalAuth, async (req, res) => {
   const user = (req as any).user as AuthPayload;
 
   // Resolve key: own > host

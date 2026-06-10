@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import type express from "express";
 
 const JWT_SECRET = () => process.env.JWT_SECRET || "dev-secret-change-me";
 
@@ -16,7 +17,7 @@ export function verifyToken(token: string): AuthPayload {
   return jwt.verify(token, JWT_SECRET()) as AuthPayload;
 }
 
-/** Express middleware — extracts user from Authorization: Bearer <token> */
+/** Require auth — rejects if no valid token */
 export function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction): void {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
@@ -32,5 +33,14 @@ export function authMiddleware(req: express.Request, res: express.Response, next
   }
 }
 
-// Need to import express types
-import type express from "express";
+/** Optional auth — extracts user if token present, but doesn't reject */
+export function optionalAuth(req: express.Request, _res: express.Response, next: express.NextFunction): void {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    try {
+      const payload = verifyToken(header.slice(7));
+      (req as any).user = payload;
+    } catch { /* invalid token — treat as guest */ }
+  }
+  next();
+}
