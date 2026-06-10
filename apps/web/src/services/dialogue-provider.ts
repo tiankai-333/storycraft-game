@@ -44,7 +44,7 @@ export function getKeySource(): "custom" | "env" | "none" {
  * - normal mode: always PassthroughProvider (no AI)
  * - smart mode: read key config from backend, proxy through backend
  */
-export async function createDialogueEngine(lang: Lang): Promise<DialogueEngine> {
+export async function createDialogueEngine(lang: Lang): Promise<DialogueEngineSetup> {
   const mode = getNarrationMode();
 
   // Normal mode: no AI, topic buttons only
@@ -53,7 +53,7 @@ export async function createDialogueEngine(lang: Lang): Promise<DialogueEngine> 
     await provider.initialize();
     const engine = new DialogueEngine(provider, { lang });
     await engine.initialize();
-    return engine;
+    return { engine };
   }
 
   // Smart mode: read config from backend
@@ -64,7 +64,7 @@ export async function createDialogueEngine(lang: Lang): Promise<DialogueEngine> 
     keyConfig = null;
   }
 
-  let provider;
+  let provider: NarrativeProvider;
   if (keyConfig) {
     // Use backend proxy provider — API key never touches frontend
     provider = new ProxyProvider(keyConfig.baseUrl, keyConfig.model);
@@ -77,7 +77,7 @@ export async function createDialogueEngine(lang: Lang): Promise<DialogueEngine> 
   const engine = new DialogueEngine(provider, { lang });
   await engine.initialize();
 
-  return engine;
+  return { engine, getProviderStatus: () => provider.getStatus() };
 }
 
 // ─── ProxyProvider ──────────────────────────────────────────────────
@@ -85,6 +85,13 @@ export async function createDialogueEngine(lang: Lang): Promise<DialogueEngine> 
 
 import type { NarrativeProvider } from "@ai-narrative";
 import type { ProviderRawResponse, ProviderState, ProviderStatus } from "@ai-narrative";
+
+/** Return type of createDialogueEngine — engine + optional provider diagnostics. */
+export interface DialogueEngineSetup {
+  engine: DialogueEngine;
+  /** Returns live provider status; undefined in normal (non-AI) mode. */
+  getProviderStatus?: () => ProviderStatus;
+}
 
 class ProxyProvider implements NarrativeProvider {
   readonly id = "proxy";
@@ -159,7 +166,7 @@ class ProxyProvider implements NarrativeProvider {
           { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 300,
+        max_tokens: 800,
         signal: controller.signal,
       });
     } catch (err) {

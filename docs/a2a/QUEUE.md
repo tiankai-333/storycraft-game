@@ -4,9 +4,12 @@
 
 <!-- Planner adds tasks here. Executor picks from top (lowest # first). -->
 
-| #   | Task                 | Status       | Planner Session  | Executor Session |
-|-----|----------------------|--------------|------------------|------------------|
-| 001 | terminal-io-format   | completed    | planner-20260610 | executor-20260610 |
+| #   | Task                       | Status      | Planner Session  | Executor Session   |
+|-----|----------------------------|-------------|------------------|--------------------|
+| 001 | terminal-io-format         | completed   | planner-20260610 | executor-20260610  |
+| 002 | increase-max-tokens        | completed   | planner-20260610 | executor-20260610  |
+| 003 | error-debug-info           | completed   | planner-20260610 | executor-20260610  |
+| 004 | explore-dialogue-mechanics | in_progress | planner-20260610 | executor-20260610  |
 
 ## Rules
 

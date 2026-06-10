@@ -65,8 +65,8 @@ export function getPack(): WorldPack {
 
 // --- Narrative Engine ---
 async function initDialogueService(lang: Lang): Promise<void> {
-  const engine = await createDialogueEngine(lang);
-  dialogueService = new DialogueService(engine);
+  const { engine, getProviderStatus } = await createDialogueEngine(lang);
+  dialogueService = new DialogueService(engine, getProviderStatus);
 }
 
 /**
@@ -248,6 +248,7 @@ async function executeAiDialogue(npcId: string, playerInput: string): Promise<vo
       const msgZh = "AI 服务暂时不可用，请重试。";
       narHistory.push({ css: "fail", en: msgEn, zh: msgZh });
       appendNar("fail", tr.lang === "zh" ? msgZh : msgEn);
+      renderDebugBlock(result);
       renderVisibleState(result.visibleState);
       return;
     }
@@ -345,11 +346,45 @@ function setInputsDisabled(disabled: boolean): void {
 
 /**
  * Render a collapsible debug block showing the dialogue pipeline details.
- * Only rendered when source is "ai". Click to expand/collapse.
+ * Works for both AI success and error results. Click to expand/collapse.
  */
 function renderDebugBlock(result: DialogueServiceResult): void {
-  if (result.source !== "ai") return;
+  // --- Error path: show provider diagnostics ---
+  if (result.source === "error") {
+    const diag = result.errorDiagnostics;
+    if (!diag) return;
 
+    const cooldownStr = diag.cooldownRemainingMs != null
+      ? `${Math.ceil(diag.cooldownRemainingMs / 1000)}s`
+      : "none";
+
+    const headerText = [
+      `ERROR │ reason: ${diag.reason}`,
+      `provider: ${diag.providerState} │ failures: ${diag.consecutiveFailures}`,
+      `cooldown: ${cooldownStr}`,
+      `last_error: ${diag.lastError ?? "(none)"}`,
+    ].join(" │ ");
+
+    const bodyText = [
+      `reason: ${diag.reason}`,
+      `provider_state: ${diag.providerState}`,
+      `consecutive_failures: ${diag.consecutiveFailures}`,
+      `cooldown_remaining: ${cooldownStr}`,
+      `last_error: ${diag.lastError ?? "(none)"}`,
+      `model: ${result.model || "(unknown)"}`,
+    ].join("\n");
+
+    const debugEl = document.createElement("div");
+    debugEl.className = "narrative-debug";
+    debugEl.innerHTML =
+      `<div class="narrative-debug-header"><span>${esc(headerText)}</span><span class="toggle-hint"></span></div>` +
+      `<div class="narrative-debug-body">${esc(bodyText)}</div>`;
+    debugEl.addEventListener("click", () => debugEl.classList.toggle("open"));
+    $("narrative-log").appendChild(debugEl);
+    return;
+  }
+
+  // --- AI success path (original logic) ---
   const tokenStr = `${result.promptTokens ?? "?"}+${result.completionTokens ?? "?"} tokens`;
   const gateStr = result.triggeredGateId ?? "null";
   const rawTruncated = result.rawAiText.length > 200

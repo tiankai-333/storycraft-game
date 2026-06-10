@@ -1,6 +1,6 @@
 import type { CommandInput, WorldState, VisibleState, AdventureDefinition } from "@shared";
 import { executeCommand, getVisibleState, evaluateAll } from "@game-runtime";
-import type { DialogueEngine, DialogueResult } from "@ai-narrative";
+import type { DialogueEngine, DialogueResult, ProviderStatus } from "@ai-narrative";
 import type { NpcScript, DialogueContext, ConversationExchange } from "@ai-narrative";
 import type { WorldPack } from "../world-registry";
 import { classifyIntent } from "./dialogue-intent";
@@ -70,6 +70,21 @@ export interface DialogueServiceResult {
   gateConfidence: "low" | "medium" | "high";
   /** Gate evidence from AI. */
   gateEvidence: string;
+
+  // ── Error diagnostics (only when source === "error") ──
+  /** Diagnostic info for AI provider failures. */
+  errorDiagnostics?: {
+    /** Why the error occurred: "cooldown_active" | "provider_call_failed". */
+    reason: string;
+    /** Provider state at time of error. */
+    providerState: string;
+    /** Number of consecutive provider failures. */
+    consecutiveFailures: number;
+    /** Last error message from the provider, if any. */
+    lastError?: string;
+    /** Remaining cooldown in ms (only when reason is "cooldown_active"). */
+    cooldownRemainingMs?: number;
+  };
 }
 
 // ─── DialogueService ───────────────────────────────────────────────
@@ -79,13 +94,15 @@ const PROVIDER_RETRY_COOLDOWN_MS = 30_000;
 
 export class DialogueService {
   private engine: DialogueEngine;
+  private getProviderStatus: (() => ProviderStatus) | undefined;
   private conversationHistory: Map<string, ConversationExchange[]>;
   private maxHistory = 5;
   /** Timestamp of last provider failure; used to avoid rapid retry hangs. */
   private lastProviderErrorAt = 0;
 
-  constructor(engine: DialogueEngine) {
+  constructor(engine: DialogueEngine, getProviderStatus?: () => ProviderStatus) {
     this.engine = engine;
+    this.getProviderStatus = getProviderStatus;
     this.conversationHistory = new Map();
   }
 
@@ -156,7 +173,7 @@ export class DialogueService {
     if (this.lastProviderErrorAt && (now - this.lastProviderErrorAt) < PROVIDER_RETRY_COOLDOWN_MS) {
       // Provider failed recently — don't retry yet, return error immediately
       console.warn("[DialogueService] cooldown active, skipping (ms since last error):", now - this.lastProviderErrorAt);
-      return this.handleProviderError(npcId, playerInput, state, adventure);
+      return this.handleProviderError(npcId, playerInput, state, adventure, "cooldown_active");
     }
 
     const result = await this.engine.handleFreeFormDialogue({
@@ -170,7 +187,7 @@ export class DialogueService {
       // AI was configured but the call failed — show system error
       // (No keyword fallback in free dialogue path — Phase 6)
       this.lastProviderErrorAt = Date.now();
-      return this.handleProviderError(npcId, playerInput, state, adventure);
+      return this.handleProviderError(npcId, playerInput, state, adventure, "provider_call_failed");
     }
 
     // ─── AI success → classify → policy → apply ────────────────────
@@ -188,7 +205,14 @@ export class DialogueService {
     playerInput: string,
     state: WorldState,
     adventure: AdventureDefinition,
+    reason: string = "provider_call_failed",
   ): DialogueServiceResult {
+    const providerStatus = this.getProviderStatus?.();
+    const now = Date.now();
+    const cooldownRemainingMs = this.lastProviderErrorAt
+      ? Math.max(0, PROVIDER_RETRY_COOLDOWN_MS - (now - this.lastProviderErrorAt))
+      : undefined;
+
     const exchange: ConversationExchange = {
       playerInput,
       npcResponse: "",
@@ -214,11 +238,18 @@ export class DialogueService {
       runtimeConfirmed: false,
       policyNotes: ["provider_call_failed"],
       rawAiText: "",
-      model: "",
+      model: providerStatus?.configRedacted?.model ?? "",
       latencyMs: 0,
       intent: { kind: "unknown", isGreeting: false, isShortInput: false },
       gateConfidence: "low",
       gateEvidence: "",
+      errorDiagnostics: {
+        reason,
+        providerState: providerStatus?.state ?? "unknown",
+        consecutiveFailures: providerStatus?.consecutiveFailures ?? 0,
+        lastError: providerStatus?.lastError,
+        cooldownRemainingMs: reason === "cooldown_active" ? cooldownRemainingMs : undefined,
+      },
     };
   }
 
