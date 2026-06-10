@@ -140,20 +140,25 @@ async function handleTest(): Promise<void> {
   const statusEl = document.getElementById("settings-status") as HTMLElement;
   const testBtn = document.getElementById("settings-test-btn") as HTMLElement;
 
-  testBtn.textContent = t("测试中…", "Testing…");
+  testBtn.textContent = t("敲敲门…", "Knocking…");
   testBtn.setAttribute("disabled", "true");
 
   try {
     const result = await testKeyConfig();
     if (result.ok) {
-      statusEl.textContent = t("✓ 连接成功，AI 正常运行", "✓ Connected, AI is running");
+      const msgs = [
+        t("✓ 连上了！AI 打了个哈欠，表示准备就绪 (๑•̀ㅂ•́)و✧", "✓ Connected! AI yawned and is ready (๑•̀ㅂ•́)و✧"),
+        t("✓ AI 醒了，正在伸懒腰… 可以开始了 ヾ(≧▽≦*)o", "✓ AI is awake and stretching… let's go ヾ(≧▽≦*)o"),
+        t("✓ 信号良好，NPC 们在搓手等待登场 (≧∇≦)ﾉ", "✓ Signal strong, NPCs are rubbing hands waiting to登场 (≧∇≦)ﾉ"),
+      ];
+      statusEl.textContent = msgs[Math.floor(Math.random() * msgs.length)];
     } else {
-      statusEl.textContent = t(`✗ 连接失败: ${result.error}`, `✗ Connection failed: ${result.error}`);
+      statusEl.textContent = t(`✗ 连不上…AI 可能睡着了 (${result.error})`, `✗ Can't connect… AI might be asleep (${result.error})`);
     }
   } catch (err: any) {
-    statusEl.textContent = t(`✗ 测试出错: ${err.message}`, `✗ Test error: ${err.message}`);
+    statusEl.textContent = t(`✗ 测试翻车了: ${err.message}`, `✗ Test crashed: ${err.message}`);
   } finally {
-    testBtn.textContent = t("测试连接", "Test Connection");
+    testBtn.textContent = t("敲门试试", "Knock knock");
     testBtn.removeAttribute("disabled");
   }
 }
