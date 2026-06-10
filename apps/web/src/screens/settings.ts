@@ -2,7 +2,6 @@ import { t } from "../i18n";
 import { getNarrationMode, type NarrationMode } from "../services/dialogue-provider";
 import { getKeyConfig, testKeyConfig, saveKeyConfig, isLoggedIn } from "../services/api-client";
 import { reinitDialogueService } from "./game";
-import { showToast } from "./auth";
 
 // ─── Pending state (applied only on Save) ───────────────────────────
 let pendingMode: NarrationMode;
@@ -108,8 +107,9 @@ async function renderSource(): Promise<void> {
   } else {
     // "用自己的" selected
     if (!isLoggedIn()) {
-      // Guest → toast + revert to host
-      showToast(t("房主摆了摆手，表示不用客气 ヽ(´ー`)ﾉ", "The host waves dismissively — no need to be polite ヽ(´ー`)ﾉ"));
+      // Guest → show message in status area + revert to host
+      const statusEl = document.getElementById("settings-status") as HTMLElement;
+      statusEl.textContent = t("房主摆了摆手，表示不用客气 ヽ(´ー`)ﾉ", "The host waves dismissively — no need to be polite ヽ(´ー`)ﾉ");
       pendingSource = "host";
       srcEnvBtn.style.cssText = activeStyle;
       srcCustomBtn.style.cssText = inactiveStyle;
