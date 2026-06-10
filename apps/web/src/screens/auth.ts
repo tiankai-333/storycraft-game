@@ -96,7 +96,7 @@ export function updateUserBadges(): void {
   } else {
     badges.forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.style.display = "none";
+      if (el) { el.style.display = ""; el.textContent = t("游客", "Guest"); }
     });
   }
 }
