@@ -172,23 +172,28 @@ async function saveSettings(): Promise<void> {
 
   // 2. Handle config source
   if (!isLoggedIn() || pendingSource === "host") {
-    statusEl.textContent = t("✓ 已保存", "✓ Saved");
+    const msgs = [
+      t("✓ 记下来了，NPC 们已经开始窃窃私语… (ಡωಡ)", "✓ Noted. The NPCs have started whispering… (ಡωಡ)"),
+      t("✓ 好的，剧本已更新，演员们就位了 ✧*。", "✓ Script updated, actors are in position ✧*."),
+      t("✓ 收到！命运的齿轮悄悄转了一下 ⚙️", "✓ Got it! The gears of fate quietly turned ⚙️"),
+    ];
+    statusEl.textContent = msgs[Math.floor(Math.random() * msgs.length)];
   } else {
     const key = (document.getElementById("settings-api-key") as HTMLInputElement).value.trim();
     const base = (document.getElementById("settings-base-url") as HTMLInputElement).value.trim();
     const model = (document.getElementById("settings-model") as HTMLInputElement).value.trim();
 
     if (!key) {
-      statusEl.textContent = t("请输入 API Key", "Please enter an API Key");
+      statusEl.textContent = t("密钥呢？NPC 们在等灵魂呢 (⊙_⊙)", "Where's the key? NPCs are waiting for souls (⊙_⊙)");
       return;
     }
 
-    statusEl.textContent = t("正在为 NPC 注入灵魂…", "Injecting souls into NPCs…");
+    statusEl.textContent = t("正在为 NPC 注入灵魂，请屏住呼吸…", "Injecting souls into NPCs, hold your breath…");
     try {
       await saveKeyConfig({ apiKey: key, baseUrl: base || "https://api.deepseek.com/v1", model: model || "deepseek-v4-pro" });
-      statusEl.textContent = t("✓ NPC 灵魂注入完成", "✓ NPC soul injection complete");
+      statusEl.textContent = t("✓ 灵魂注入成功，NPC 睁开了眼睛 (◉◞◉)", "✓ Soul injection complete, NPCs opened their eyes (◉◞◉)");
     } catch {
-      statusEl.textContent = t("✗ 灵魂注入失败，请检查配置", "✗ Soul injection failed, check config");
+      statusEl.textContent = t("✗ 灵魂注入失败，NPC 又闭上了眼…", "✗ Soul injection failed, NPCs closed their eyes again…");
     }
   }
 
