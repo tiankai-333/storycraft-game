@@ -176,7 +176,15 @@ async function saveSettings(): Promise<void> {
   }
 
   // 2. Handle config source
-  if (!isLoggedIn() || pendingSource === "host") {
+  if (pendingMode === "normal") {
+    // Normal mode: no AI, different vibe
+    const msgs = [
+      t("✓ 好的，NPC 们收起了麦克风，回到了剧本里 (￣▽￣)", "✓ NPCs put away the mic and returned to the script (￣▽￣)"),
+      t("✓ AI 被请去喝茶了，NPC 们按剧本走 (・ω・)", "✓ AI was sent off for tea, NPCs follow the script now (・ω・)"),
+      t("✓ 明白了，回到经典模式，一切尽在掌握 ✧", "✓ Got it, classic mode. Everything under control ✧"),
+    ];
+    statusEl.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  } else if (!isLoggedIn() || pendingSource === "host") {
     const msgs = [
       t("✓ 记下来了，NPC 们已经开始窃窃私语… (ಡωಡ)", "✓ Noted. The NPCs have started whispering… (ಡωಡ)"),
       t("✓ 好的，剧本已更新，演员们就位了 ✧*。", "✓ Script updated, actors are in position ✧*."),
