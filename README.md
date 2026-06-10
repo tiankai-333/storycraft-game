@@ -1,91 +1,8 @@
-# StoryCraft Game
+# 🏰 StoryCraft Game
 
-AI-driven interactive fiction. Explore rooms, talk to NPCs, collect clues, and solve the mystery.
+AI 驱动的互动文字冒险 / AI-driven interactive fiction.
 
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-npm install
-```
-
-### 2. Start the backend
-
-```bash
-cd apps/server
-
-# Copy and fill in secrets (first time only)
-cp .env.example .env
-# Edit .env — set ENCRYPTION_KEY and JWT_SECRET
-
-npm run dev          # starts on http://localhost:3001
-```
-
-### 3. Start the frontend
-
-```bash
-cd apps/web
-npm run dev          # starts on http://localhost:5173
-```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## Configuring the AI API Key
-
-StoryCraft uses an AI provider for NPC dialogue. The API key **never reaches the browser** — it is stored encrypted in a SQLite database and the backend proxies all AI requests server-side.
-
-### How to set the key
-
-1. Start the app, register an account (the first user becomes **host**).
-2. Go to **Settings** → enter your API key (e.g. a DeepSeek or OpenAI-compatible key), base URL, and model name.
-3. The backend encrypts the key with AES-256 and stores it in `apps/server/data/keys.db`.
-
-Guests and other users automatically fall back to the host key unless they configure their own.
-
-### Key security model
-
-| Layer | What happens |
-| --- | --- |
-| **Browser** | Never sees the raw key. Frontend calls `POST /api/ai/chat`; backend proxies to the AI provider. |
-| **Backend** | Key stored encrypted in SQLite (`api_keys` table). Encryption key (`ENCRYPTION_KEY`) lives in `apps/server/.env`, which is gitignored. |
-| **Git** | `.env` files are in `.gitignore`. Only `.env.example` (without secrets) is committed. |
-
-To generate the secrets for `.env`:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Run once for `ENCRYPTION_KEY`, once for `JWT_SECRET`.
-
-## Project Structure
-
-```text
-storycraft-game/
-  apps/
-    server/             Express backend (auth, key storage, AI proxy)
-    web/                Vite + TypeScript frontend
-  packages/
-    game-runtime/       rooms, commands, rules, quests, state
-    ai-narrative/       AI dialogue engine, prompt builder, gate review
-    shared/             shared contracts and schemas
-  docs/                 design docs and worklogs
-```
-
-## Available Commands
-
-```bash
-npm run typecheck     # type-check all packages
-npm test              # run all tests
-npm run build         # production build
-```
-
----
-
-## 中文说明
-
-AI 驱动的互动文字冒险。探索房间、与 NPC 对话、收集线索、破解谜案。
+探索房间、与 NPC 对话、收集线索、破解谜案。支持 **浏览器** 和 **终端** 两种游玩方式。
 
 ## 快速开始
 
@@ -104,53 +21,81 @@ cd apps/server
 cp .env.example .env
 # 编辑 .env，设置 ENCRYPTION_KEY 和 JWT_SECRET
 
-npm run dev          # 启动在 http://localhost:3001
+npx tsx src/index.ts   # 启动在 http://localhost:3001
 ```
 
 ### 3. 启动前端
 
 ```bash
 cd apps/web
-npm run dev          # 启动在 http://localhost:5173
+npx vite --host        # 启动在 http://localhost:5173
 ```
 
-浏览器打开 [http://localhost:5173](http://localhost:5173) 即可。
+浏览器打开 <http://localhost:5173> 即可。
 
-## 配置 AI API 密钥
+### 4. 终端模式（CLI）
 
-StoryCraft 使用 AI 服务生成 NPC 对话。API 密钥**不会传递到浏览器**——它以加密形式存储在 SQLite 数据库中，所有 AI 请求由后端代理转发。
+无需后端，直接在终端里玩：
 
-### 如何设置密钥
+```bash
+# 普通模式（无 AI）
+npx tsx --tsconfig apps/cli/tsconfig.json apps/cli/src/run.ts
 
-1. 启动应用后注册账号（第一个注册用户自动成为 **host**）。
-2. 进入 **Settings（设置）** → 填写 API 密钥（如 DeepSeek 或 OpenAI 兼容密钥）、Base URL 和模型名称。
-3. 后端使用 AES-256 加密密钥并存储在 `apps/server/data/keys.db` 中。
+# AI 模式
+OPENAI_API_KEY=sk-xxx AI_BASE_URL=https://api.deepseek.com/v1 AI_MODEL=deepseek-chat \
+  npx tsx --tsconfig apps/cli/tsconfig.json apps/cli/src/run.ts
+```
 
-未配置密钥的访客和其他用户会自动使用 host 密钥。
+## 游戏模式
 
-### 密钥安全模型
+### 🖥️ 浏览器模式
+
+- **游客模式**：直接进入游戏，自动使用房主配置的 AI 密钥
+  - 点设置 → "用自己的" → 左下角提示「房主摆了摆手，表示不用客气 ヽ(´ー`)ﾉ」
+- **登录用户**：点右上角 👤 登录/注册，可配置自己的 API 密钥
+  - 第一个注册的用户自动成为 **房主（host）**，密钥供所有游客使用
+
+### 📟 终端模式
+
+- 支持中英文命令：`look`、`go 东`、`search 书桌`、`take 钥匙`
+- 自由文本直接对 NPC 说话（AI 自动回复）
+- 彩色 ANSI 输出：房间、出口、NPC、线索一目了然
+- 输入 `help` 查看完整命令列表
+
+## 配置 AI 密钥
+
+StoryCraft 使用 AI 服务生成 NPC 对话。API 密钥**不会传递到浏览器**——以加密形式存储在 SQLite 中，所有 AI 请求由后端代理转发。
+
+### 设置方式
+
+1. 启动应用，注册账号（第一个用户自动成为 **host**）
+2. **Settings（设置）** → 填写 API 密钥（DeepSeek / OpenAI 兼容）、Base URL、模型名
+3. 后端用 AES-256 加密存储
+
+未配置密钥的游客自动使用 host 密钥。
+
+### 安全模型
 
 | 层级 | 安全措施 |
 | --- | --- |
-| **浏览器** | 始终不接触原始密钥。前端调用 `POST /api/ai/chat`，由后端代理转发至 AI 服务。 |
-| **后端** | 密钥以 AES-256 加密存储在 SQLite（`api_keys` 表）中。加密主密钥（`ENCRYPTION_KEY`）存放在 `apps/server/.env`，已被 gitignore。 |
-| **Git** | `.env` 文件已加入 `.gitignore`，仅提交不含密钥的 `.env.example`。 |
+| **浏览器** | 始终不接触原始密钥。前端调用 `POST /api/ai/chat`，后端代理转发 |
+| **后端** | AES-256 加密存储，加密主密钥在 `.env`（已 gitignore） |
+| **Git** | 仅提交 `.env.example`，不含密钥 |
 
-生成 `.env` 所需密钥：
+生成密钥：
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
-
-分别运行一次，填入 `ENCRYPTION_KEY` 和 `JWT_SECRET`。
 
 ## 项目结构
 
 ```text
 storycraft-game/
   apps/
+    cli/                终端游戏模式（ANSI 彩色输出）
     server/             Express 后端（认证、密钥存储、AI 代理）
-    web/                Vite + TypeScript 前端
+    web/                Vite + TypeScript 浏览器前端
   packages/
     game-runtime/       房间、命令、规则、任务、状态
     ai-narrative/       AI 对话引擎、提示词构建、门控审核
@@ -165,3 +110,9 @@ npm run typecheck     # 全局类型检查
 npm test              # 运行所有测试
 npm run build         # 生产构建
 ```
+
+## 当前线索：霜钟楼的最后一声钟响
+
+> 暴风雪之夜，庄园主人奥登·沃斯被发现死在钟楼之下。家中众人声称钟楼门从内部锁死。黎明时分，山路将被打通，嫌疑人将四散而去。你只有 **8 个调查回合** 来揭开真相。
+
+3 个 NPC、7 个房间、6 条线索、8 个结局。你能在黎明前找到凶手吗？

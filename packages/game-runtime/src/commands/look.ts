@@ -24,7 +24,7 @@ export function executeLook(
     messageParts.push(`Present: ${npcs}.`);
   }
 
-  const message = messageParts.join(" ");
+  const message = messageParts.join("\n");
   const events = [createEvent(state, "looked", "look", message)];
   const nextState = appendEvents(state, events);
 

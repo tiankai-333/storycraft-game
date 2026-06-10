@@ -111,6 +111,7 @@ html, body {
 #narrative-log { display: flex; flex-direction: column; gap: 0.5rem; }
 .narrative-entry { padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; line-height: 1.5; }
 .narrative-entry.ok { color: var(--text-primary); }
+.narrative-entry.ai-dialogue { white-space: pre-wrap; }
 .narrative-entry.fail { color: var(--text-secondary); font-style: italic; }
 .narrative-entry.ending { color: var(--text-accent); font-weight: bold; font-size: 1.05rem; }
 .narrative-entry .command-label { color: var(--text-accent); font-weight: bold; margin-right: 0.5rem; }

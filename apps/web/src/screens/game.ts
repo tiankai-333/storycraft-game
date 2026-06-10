@@ -256,7 +256,7 @@ async function executeAiDialogue(npcId: string, playerInput: string): Promise<vo
     const aiBadge = ' <span class="ai-badge" title="AI dialogue">✦</span>';
     narHistory.push({ css: "ok", en: result.dialogue, zh: result.dialogue, aiSource: "ai" });
     const el = document.createElement("div");
-    el.className = "narrative-entry ok";
+    el.className = "narrative-entry ok ai-dialogue";
     el.innerHTML = `${esc(result.dialogue)}${aiBadge}`;
     $("narrative-log").appendChild(el);
 
@@ -887,7 +887,8 @@ export function replayNarLog(): void {
       log.appendChild(d);
     } else {
       const d = document.createElement("div");
-      d.className = `narrative-entry ${e.css}`;
+      const aiClass = e.aiSource === "ai" ? " ai-dialogue" : "";
+      d.className = `narrative-entry ${e.css}${aiClass}`;
       const aiBadge =
         e.aiSource === "ai" ? ' <span class="ai-badge" title="AI dialogue">✦</span>' : "";
       d.innerHTML = `${esc(tr.lang === "zh" ? e.zh : e.en)}${aiBadge}`;

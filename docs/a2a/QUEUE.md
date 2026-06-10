@@ -4,9 +4,9 @@
 
 <!-- Planner adds tasks here. Executor picks from top (lowest # first). -->
 
-| # | Task | Status | Planner Session | Executor Session |
-|---|------|--------|----------------|-----------------|
-| <!-- 001 \| example-slug \| ready \| session-YYYYMMDD \| --> |
+| #   | Task                 | Status       | Planner Session  | Executor Session |
+|-----|----------------------|--------------|------------------|------------------|
+| 001 | terminal-io-format   | in_progress  | planner-20260610 | executor-20260610 |
 
 ## Rules
 
