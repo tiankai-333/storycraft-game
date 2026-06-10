@@ -1,7 +1,11 @@
 import jwt from "jsonwebtoken";
 import type express from "express";
 
-const JWT_SECRET = () => process.env.JWT_SECRET || "dev-secret-change-me";
+const JWT_SECRET = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET env var is required. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"");
+  return secret;
+};
 
 export interface AuthPayload {
   userId: string;

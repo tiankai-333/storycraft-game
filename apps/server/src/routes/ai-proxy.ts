@@ -36,6 +36,9 @@ router.post("/chat", optionalAuth, async (req, res) => {
 
   const apiKey = decrypt(row.api_key as string);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
   try {
     const response = await fetch(`${row.base_url}/chat/completions`, {
       method: "POST",
@@ -44,10 +47,16 @@ router.post("/chat", optionalAuth, async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(req.body),
+      signal: controller.signal,
     });
 
-    // Forward status and content-type
-    res.status(response.status);
+    if (!response.ok) {
+      // Don't forward upstream error body — may contain API key hints
+      console.error(`[AI Proxy] Upstream ${response.status}`);
+      res.status(response.status).json({ error: `AI provider returned ${response.status}` });
+      return;
+    }
+
     const ct = response.headers.get("content-type");
     if (ct) res.setHeader("content-type", ct);
 
@@ -55,7 +64,9 @@ router.post("/chat", optionalAuth, async (req, res) => {
     res.send(text);
   } catch (err: any) {
     console.error("[AI Proxy] Error:", err.message);
-    res.status(502).json({ error: "AI proxy failed: " + err.message });
+    res.status(502).json({ error: "AI proxy failed" });
+  } finally {
+    clearTimeout(timeout);
   }
 });
 

@@ -29,6 +29,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/keys", keysRoutes);
 app.use("/api/ai", aiProxyRoutes);
 
+// Global error handler — prevent stack trace leakage
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[Server] Unhandled error:", err.message || err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });

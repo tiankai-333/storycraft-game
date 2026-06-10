@@ -61,3 +61,12 @@ browser-playable
 ```
 
 Do not build a generic engine before the first small game is fun.
+
+## A2A Workflow
+
+When operating in a multi-agent session, read your role file:
+
+- `docs/a2a/PLANNER.md` — planning, task creation, review
+- `docs/a2a/EXECUTOR.md` — implementation, testing, feedback
+
+Read the shared queue first: `docs/a2a/QUEUE.md`

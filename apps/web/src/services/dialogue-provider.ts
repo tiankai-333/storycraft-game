@@ -1,4 +1,4 @@
-import { PassthroughProvider, OpenAICompatibleProvider, DialogueEngine } from "@ai-narrative";
+import { PassthroughProvider, DialogueEngine } from "@ai-narrative";
 import type { Lang } from "../i18n";
 import { getKeyConfig, aiChat } from "./api-client";
 
@@ -160,6 +160,7 @@ class ProxyProvider implements NarrativeProvider {
         ],
         temperature: 0.7,
         max_tokens: 300,
+        signal: controller.signal,
       });
     } catch (err) {
       clearTimeout(timeout);
@@ -191,7 +192,7 @@ class ProxyProvider implements NarrativeProvider {
     }
 
     this.consecutiveFailures = 0;
-    if (this.state === "degraded") this.state = "ready";
+    if (this.state === "degraded" || this.state === "failed") this.state = "ready";
     this.lastHealthCheck = Date.now();
 
     return {

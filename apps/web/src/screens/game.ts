@@ -531,11 +531,11 @@ export function renderVisibleState(v: VisibleState): void {
   renderRoomArt(v.currentRoom.id);
   $("room-exits").innerHTML =
     v.visibleExits.length > 0
-      ? `<strong>${t("出口：", "Exits: ")}</strong>${v.visibleExits.map((e) => (e.locked ? `<span style="text-decoration:line-through">${e.direction}</span>` : e.direction)).join(t("、", ", "))}`
+      ? `<strong>${t("出口：", "Exits: ")}</strong>${v.visibleExits.map((e) => (e.locked ? `<span style="text-decoration:line-through">${esc(e.direction)}</span>` : esc(e.direction))).join(t("、", ", "))}`
       : "";
   $("room-npcs").innerHTML =
     v.presentNpcs.length > 0
-      ? `<strong>${t("在场：", "Present: ")}</strong>${v.presentNpcs.map((n) => `${tr.npc(n.id)}（${tr.npcRole(n.id)}）`).join(t("、", ", "))}`
+      ? `<strong>${t("在场：", "Present: ")}</strong>${v.presentNpcs.map((n) => `${esc(tr.npc(n.id))}（${esc(tr.npcRole(n.id))}）`).join(t("、", ", "))}`
       : "";
 
   // Headings
@@ -841,7 +841,7 @@ function renderClues(v: VisibleState): void {
       ? entries
           .map(
             ([id, s]) =>
-              `<li class="${s === "weak" ? "clue-weak" : "clue-standard"}">${tr.clue(id)}（${tr.strength(s)}）</li>`,
+              `<li class="${s === "weak" ? "clue-weak" : "clue-standard"}">${esc(tr.clue(id))}（${esc(tr.strength(s))}）</li>`,
           )
           .join("")
       : `<li style="color:var(--text-secondary);font-style:italic">${UI.noneDiscovered()}</li>`;
@@ -852,7 +852,7 @@ function renderTrust(v: VisibleState): void {
   $("trust-list").innerHTML = Object.entries(v.trust)
     .map(
       ([nid, trust]) =>
-        `<div class="trust-row"><span>${tr.npc(nid)}</span><span class="trust-value trust-${trust}">${"●".repeat(Number(trust))}${"○".repeat(2 - Number(trust))}</span></div>`,
+        `<div class="trust-row"><span>${esc(tr.npc(nid))}</span><span class="trust-value trust-${Number(trust)}">${"●".repeat(Number(trust))}${"○".repeat(2 - Number(trust))}</span></div>`,
     )
     .join("");
 }
@@ -861,7 +861,7 @@ function renderTrust(v: VisibleState): void {
 function renderConsequences(v: VisibleState): void {
   $("consequences-list").innerHTML =
     v.consequences.length > 0
-      ? v.consequences.map((c) => `<li>${tr.consequence(c)}</li>`).join("")
+      ? v.consequences.map((c) => `<li>${esc(tr.consequence(c))}</li>`).join("")
       : `<li style="color:var(--text-secondary);font-style:italic">${UI.none()}</li>`;
 }
 

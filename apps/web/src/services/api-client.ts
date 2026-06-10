@@ -60,6 +60,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (!res.ok) {
+    if (res.status === 401) clearToken();
     const body = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${body.slice(0, 200)}`);
   }
@@ -124,6 +125,7 @@ export async function aiChat(body: {
   messages: Array<{ role: string; content: string }>;
   temperature?: number;
   max_tokens?: number;
+  signal?: AbortSignal;
 }): Promise<Response> {
   const token = getToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -133,5 +135,6 @@ export async function aiChat(body: {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal: body.signal,
   });
 }

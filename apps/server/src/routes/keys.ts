@@ -51,7 +51,9 @@ router.post("/", authMiddleware, (req, res) => {
   }
 
   const db = getDb();
-  const isHost = user.role === "host" ? 1 : 0;
+  // Verify role from DB, not JWT
+  const userRow = queryFirst("SELECT role FROM users WHERE id = ?", [user.userId]);
+  const isHost = userRow?.role === "host" ? 1 : 0;
   const encryptedKey = encrypt(apiKey);
 
   const existing = queryFirst("SELECT id FROM api_keys WHERE user_id = ? AND is_host = ?", [user.userId, isHost]);
@@ -93,20 +95,28 @@ router.post("/test", optionalAuth, async (_req, res) => {
   }
 
   const apiKey = decrypt(row.api_key as string);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
   try {
     const response = await fetch(`${row.base_url}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: row.model, messages: [{ role: "user", content: "ping" }], max_tokens: 5 }),
+      signal: controller.signal,
     });
     if (response.ok) {
       res.json({ ok: true, model: row.model });
     } else {
-      const body = await response.text().catch(() => "");
-      res.json({ ok: false, error: `API ${response.status}: ${body.slice(0, 100)}` });
+      // Don't expose upstream error details to client
+      console.error(`[Key Test] Upstream ${response.status}`);
+      res.json({ ok: false, error: `API returned ${response.status}` });
     }
   } catch (err: any) {
-    res.json({ ok: false, error: err.message });
+    res.json({ ok: false, error: "Connection failed" });
+  } finally {
+    clearTimeout(timeout);
   }
 });
 
