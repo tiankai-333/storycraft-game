@@ -143,6 +143,44 @@ html, body {
   40% { opacity: 1; transform: scale(1.2); }
 }
 
+/* --- Dev-mode debug block (inline under AI dialogue) --- */
+.narrative-debug {
+  margin-top: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  font-family: "Courier New", "Consolas", monospace;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  background: rgba(15, 14, 13, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: text;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.narrative-debug:hover { opacity: 1; }
+.narrative-debug-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0;
+}
+.narrative-debug-header .toggle-hint {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+.narrative-debug-body {
+  display: none;
+  margin-top: 0.3rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.narrative-debug.open .narrative-debug-body {
+  display: block;
+}
+.narrative-debug.open .toggle-hint::after { content: "click to collapse"; }
+.narrative-debug:not(.open) .toggle-hint::after { content: "click to expand"; }
+
 /* --- Room ASCII art --- */
 #room-art {
   margin-top: 0.5rem;

@@ -76,6 +76,10 @@ export class DialogueEngine {
       triggeredTopicGateId: null,
       source: "passthrough",
       latencyMs: Date.now() - startTime,
+      rawAiText: "",
+      model: "",
+      systemPrompt: "",
+      userPrompt: "",
     };
 
     // If AI is not available, return passthrough
@@ -94,11 +98,18 @@ export class DialogueEngine {
 
     // Call provider
     let rawText: string;
+    let rawModel: string = "";
+    let rawPromptTokens: number | undefined;
+    let rawCompletionTokens: number | undefined;
     try {
       const narrativeRequest = this.buildMinimalRequest(request);
       const raw = await this.provider.call(narrativeRequest, system, user);
       rawText = raw.text;
-    } catch {
+      rawModel = raw.model;
+      rawPromptTokens = raw.promptTokenCount;
+      rawCompletionTokens = raw.completionTokenCount;
+    } catch (err) {
+      console.error("[DialogueEngine] provider.call failed:", err);
       return passthroughResult;
     }
 
@@ -117,6 +128,10 @@ export class DialogueEngine {
         triggeredTopicGateId: null,
         source: "ai",
         latencyMs: Date.now() - startTime,
+        rawAiText: rawText,
+        model: rawModel,
+        systemPrompt: system,
+        userPrompt: user,
       };
     }
 
@@ -142,6 +157,12 @@ export class DialogueEngine {
       candidateActionHint: reviewed.candidateActionHint,
       source: "ai",
       latencyMs: Date.now() - startTime,
+      rawAiText: rawText,
+      model: rawModel,
+      promptTokens: rawPromptTokens,
+      completionTokens: rawCompletionTokens,
+      systemPrompt: system,
+      userPrompt: user,
       // Backward compatibility
       triggeredTopicGateId: reviewed.candidateGateId,
     };

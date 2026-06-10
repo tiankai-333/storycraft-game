@@ -8,6 +8,8 @@ import { UI, createTranslator, type Translator, getLang, t } from "../i18n";
 import type { Lang } from "../i18n";
 import { generateMapSvg } from "../map-renderer";
 import { showEnding } from "./end";
+// Import devlog to ensure window.__devlog is initialized
+import "../services/devlog";
 
 // --- Module state ---
 let pack: WorldPack;
@@ -258,6 +260,9 @@ async function executeAiDialogue(npcId: string, playerInput: string): Promise<vo
     el.innerHTML = `${esc(result.dialogue)}${aiBadge}`;
     $("narrative-log").appendChild(el);
 
+    // --- Render debug block (dev mode) ---
+    renderDebugBlock(result);
+
     // Render gate effects (clues, items, trust from gate, turn spent)
     if (result.gateEffects) {
       const effectMessages: string[] = [];
@@ -336,6 +341,44 @@ function setInputsDisabled(disabled: boolean): void {
   ($("command-input") as HTMLInputElement).disabled = disabled;
   ($("command-submit") as HTMLButtonElement).disabled = disabled;
   ($("npc-select") as HTMLSelectElement).disabled = disabled;
+}
+
+/**
+ * Render a collapsible debug block showing the dialogue pipeline details.
+ * Only rendered when source is "ai". Click to expand/collapse.
+ */
+function renderDebugBlock(result: DialogueServiceResult): void {
+  if (result.source !== "ai") return;
+
+  const tokenStr = `${result.promptTokens ?? "?"}+${result.completionTokens ?? "?"} tokens`;
+  const gateStr = result.triggeredGateId ?? "null";
+  const rawTruncated = result.rawAiText.length > 200
+    ? result.rawAiText.slice(0, 200) + "…"
+    : result.rawAiText;
+
+  const headerText = [
+    `intent: ${result.intent.kind}`,
+    `model: ${result.model} | ${result.latencyMs}ms | ${tokenStr}`,
+    `gate: ${gateStr} | confidence: ${result.gateConfidence}`,
+    `policy: [${result.policyNotes.map((n) => `"${n}"`).join(", ")}]`,
+  ].join(" │ ");
+
+  const bodyText = [
+    `intent: ${result.intent.kind} (greeting=${result.intent.isGreeting}, short=${result.intent.isShortInput})`,
+    `model: ${result.model} | ${result.latencyMs}ms | ${tokenStr}`,
+    `gate: ${gateStr} | confidence: ${result.gateConfidence}`,
+    `gateEvidence: ${result.gateEvidence || "(none)"}`,
+    `policy: [${result.policyNotes.join(", ")}]`,
+    `raw: ${rawTruncated}`,
+  ].join("\n");
+
+  const debugEl = document.createElement("div");
+  debugEl.className = "narrative-debug";
+  debugEl.innerHTML =
+    `<div class="narrative-debug-header"><span>${esc(headerText)}</span><span class="toggle-hint"></span></div>` +
+    `<div class="narrative-debug-body">${esc(bodyText)}</div>`;
+  debugEl.addEventListener("click", () => debugEl.classList.toggle("open"));
+  $("narrative-log").appendChild(debugEl);
 }
 
 // --- Room ASCII Art ---

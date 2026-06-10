@@ -4,7 +4,9 @@ import type { DialogueEngine, DialogueResult } from "@ai-narrative";
 import type { NpcScript, DialogueContext, ConversationExchange } from "@ai-narrative";
 import type { WorldPack } from "../world-registry";
 import { classifyIntent } from "./dialogue-intent";
+import type { DialogueIntent } from "./dialogue-intent";
 import { reviewDialogueCandidates } from "./dialogue-policy";
+import { devlog } from "./devlog";
 
 // ─── Result Types ──────────────────────────────────────────────────
 
@@ -50,6 +52,24 @@ export interface DialogueServiceResult {
   runtimeConfirmed: boolean;
   /** Policy audit trail. */
   policyNotes: string[];
+
+  // ── Debug / dev-mode fields (from engine, for inline debug block) ──
+  /** Raw AI output text before parsing. */
+  rawAiText: string;
+  /** Model identifier used for this call. */
+  model: string;
+  /** API latency in ms (from engine). */
+  latencyMs: number;
+  /** Prompt token count. */
+  promptTokens?: number;
+  /** Completion token count. */
+  completionTokens?: number;
+  /** Classified player intent. */
+  intent: DialogueIntent;
+  /** Gate confidence from AI. */
+  gateConfidence: "low" | "medium" | "high";
+  /** Gate evidence from AI. */
+  gateEvidence: string;
 }
 
 // ─── DialogueService ───────────────────────────────────────────────
@@ -135,6 +155,7 @@ export class DialogueService {
     const now = Date.now();
     if (this.lastProviderErrorAt && (now - this.lastProviderErrorAt) < PROVIDER_RETRY_COOLDOWN_MS) {
       // Provider failed recently — don't retry yet, return error immediately
+      console.warn("[DialogueService] cooldown active, skipping (ms since last error):", now - this.lastProviderErrorAt);
       return this.handleProviderError(npcId, playerInput, state, adventure);
     }
 
@@ -192,6 +213,12 @@ export class DialogueService {
       possibleStateClaim: null,
       runtimeConfirmed: false,
       policyNotes: ["provider_call_failed"],
+      rawAiText: "",
+      model: "",
+      latencyMs: 0,
+      intent: { kind: "unknown", isGreeting: false, isShortInput: false },
+      gateConfidence: "low",
+      gateEvidence: "",
     };
   }
 
@@ -276,6 +303,44 @@ export class DialogueService {
     };
     this.updateHistory(npcId, exchange);
 
+    // Record to DevLog for development debugging
+    devlog.record({
+      timestamp: Date.now(),
+      npcId,
+      playerInput,
+      intent,
+      providerCall: {
+        model: result.model,
+        latencyMs: result.latencyMs,
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+      },
+      aiRawText: result.rawAiText,
+      aiParsed: {
+        dialogue: result.dialogue,
+        candidateGateId: result.candidateGateId,
+        gateEvidence: result.gateEvidence,
+        gateConfidence: result.gateConfidence,
+        candidateActionHint: result.candidateActionHint,
+      },
+      gateReview: {
+        accepted: policy.acceptedGateId !== null,
+        reason: policy.notes.join(", ") || "no_gate",
+      },
+      policy: {
+        acceptedGateId: policy.acceptedGateId,
+        notes: policy.notes,
+        possibleStateClaim: policy.possibleStateClaim,
+      },
+      runtime: {
+        gateApplied: gateEffects !== null,
+        trustDelta: trustDeltaApplied,
+        stateConfirmed: runtimeConfirmed,
+      },
+      systemPrompt: result.systemPrompt,
+      userPrompt: result.userPrompt,
+    });
+
     return {
       dialogue: result.dialogue,
       source: "ai",
@@ -293,6 +358,15 @@ export class DialogueService {
       possibleStateClaim: policy.possibleStateClaim,
       runtimeConfirmed,
       policyNotes: policy.notes,
+      // Debug / dev-mode fields
+      rawAiText: result.rawAiText,
+      model: result.model,
+      latencyMs: result.latencyMs,
+      promptTokens: result.promptTokens,
+      completionTokens: result.completionTokens,
+      intent,
+      gateConfidence: result.gateConfidence,
+      gateEvidence: result.gateEvidence,
     };
   }
 

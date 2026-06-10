@@ -133,11 +133,26 @@ async function saveSettings(): Promise<void> {
   }
 
   // 3. Apply
-  statusEl.textContent = t("✓ 已保存", "✓ Saved");
+  if (pendingMode === "normal") {
+    statusEl.textContent = t("✓ 已保存", "✓ Saved");
+  } else if (pendingSource === "env") {
+    statusEl.textContent = t("悄悄连上了房主的钱包…", "Quietly connecting to host's wallet…");
+  } else {
+    statusEl.textContent = t("正在为 NPC 注入灵魂…", "Injecting souls into NPCs…");
+  }
   try {
     await reinitDialogueService();
+    if (pendingSource === "env") {
+      statusEl.textContent = t("✓ 成功，悄悄连上了房主的钱包", "✓ Success, quietly connected to host's wallet");
+    } else if (pendingMode !== "normal") {
+      statusEl.textContent = t("✓ NPC 灵魂注入完成", "✓ NPC soul injection complete");
+    }
   } catch {
-    statusEl.textContent = t("保存失败，请刷新页面", "Save failed, please reload");
+    if (pendingSource === "env") {
+      statusEl.textContent = t("✗ 房主的钱包被藏起来了", "✗ Host's wallet is hidden");
+    } else {
+      statusEl.textContent = t("✗ 灵魂注入失败，请检查配置", "✗ Soul injection failed, check config");
+    }
   }
 
   // 4. Re-read actual state and refresh UI

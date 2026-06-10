@@ -107,6 +107,20 @@ export interface DialogueResult {
   /** AI-suggested action (e.g., "item_given"). Policy reviews this. */
   candidateActionHint: string | null;
 
+  // ── Debug / dev-mode fields (populated for development) ──
+  /** Raw AI output text before parsing. */
+  rawAiText: string;
+  /** Model identifier used for this call. */
+  model: string;
+  /** Prompt token count (if available from provider). */
+  promptTokens?: number;
+  /** Completion token count (if available from provider). */
+  completionTokens?: number;
+  /** Full system prompt sent to AI. */
+  systemPrompt: string;
+  /** Full user prompt sent to AI. */
+  userPrompt: string;
+
   // ── Temporary backward compatibility ──
   /** @deprecated Use candidateGateId. Maps from candidateGateId. */
   triggeredTopicGateId: string | null;
