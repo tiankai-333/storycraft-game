@@ -82,13 +82,19 @@ async function renderSource(): Promise<void> {
   const envModel = document.getElementById("settings-env-model") as HTMLElement;
   const customFields = document.getElementById("settings-custom-fields") as HTMLElement;
   const customToggle = document.getElementById("settings-src-custom") as HTMLElement;
+  const guestHint = document.getElementById("settings-guest-hint") as HTMLElement;
 
   // Hide custom fields by default
   customFields.style.display = "none";
 
   if (!isLoggedIn()) {
-    // Guest mode — only show host info
+    // Guest mode — show flavor text + host info only
     customToggle.style.display = "none";
+    guestHint.style.display = "";
+    guestHint.textContent = t("房主摆了摆手，表示不用客气 ヽ(´ー`)ﾉ", "The host waves dismissively — no need to be polite ヽ(´ー`)ﾉ");
+
+    const srcEnvBtn = document.getElementById("settings-src-env") as HTMLElement;
+    srcEnvBtn.style.display = "none";
 
     try {
       const config = await getKeyConfig();
@@ -105,6 +111,7 @@ async function renderSource(): Promise<void> {
     }
   } else {
     // Logged in — show both options
+    guestHint.style.display = "none";
     customToggle.style.display = "";
 
     if (pendingSource === "host") {
