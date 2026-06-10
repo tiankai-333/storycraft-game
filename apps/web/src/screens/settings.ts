@@ -1,7 +1,8 @@
 import { t } from "../i18n";
 import { getNarrationMode, type NarrationMode } from "../services/dialogue-provider";
-import { getKeyConfig, testKeyConfig, saveKeyConfig, deleteKeyConfig, isLoggedIn, getToken } from "../services/api-client";
+import { getKeyConfig, testKeyConfig, saveKeyConfig, isLoggedIn } from "../services/api-client";
 import { reinitDialogueService } from "./game";
+import { showToast } from "./auth";
 
 // ─── Pending state (applied only on Save) ───────────────────────────
 let pendingMode: NarrationMode;
@@ -20,7 +21,14 @@ export function initSettings(): void {
   document.getElementById("settings-mode-normal")?.addEventListener("click", () => switchMode("normal"));
   document.getElementById("settings-mode-smart")?.addEventListener("click", () => switchMode("smart"));
   document.getElementById("settings-src-custom")?.addEventListener("click", () => switchSource("custom"));
+  document.getElementById("settings-src-env")?.addEventListener("click", () => switchSource("host"));
   document.getElementById("settings-test-btn")?.addEventListener("click", handleTest);
+
+  // Re-render source when auth state changes (login/logout from auth modal)
+  window.addEventListener("auth-changed", () => {
+    pendingSource = "host";
+    void renderSource();
+  });
 }
 
 // ─── Open / Close ───────────────────────────────────────────────────
@@ -30,13 +38,7 @@ export async function openSettings(): Promise<void> {
   (document.getElementById("settings-save") as HTMLElement).textContent = t("保存", "Save");
 
   pendingMode = getNarrationMode();
-
-  // Determine source from backend
-  if (isLoggedIn()) {
-    pendingSource = "custom"; // logged-in user can use custom
-  } else {
-    pendingSource = "host"; // guest uses host
-  }
+  pendingSource = "host";
 
   renderMode(pendingMode);
   await renderSource();
@@ -66,7 +68,7 @@ function renderMode(mode: NarrationMode): void {
     smartBtn.style.cssText = activeStyle;
     descEl.textContent = t("智能模式：NPC 由 AI 驱动自由对话。", "Smart mode: NPCs are driven by AI for free-form dialogue.");
     configEl.style.display = "";
-    void renderSource(); // async, fire-and-forget
+    void renderSource();
   }
 }
 
@@ -81,57 +83,47 @@ async function renderSource(): Promise<void> {
   const envInfo = document.getElementById("settings-env-info") as HTMLElement;
   const envModel = document.getElementById("settings-env-model") as HTMLElement;
   const customFields = document.getElementById("settings-custom-fields") as HTMLElement;
-  const customToggle = document.getElementById("settings-src-custom") as HTMLElement;
-  const guestHint = document.getElementById("settings-guest-hint") as HTMLElement;
+  const srcEnvBtn = document.getElementById("settings-src-env") as HTMLElement;
+  const srcCustomBtn = document.getElementById("settings-src-custom") as HTMLElement;
 
-  // Hide custom fields by default
   customFields.style.display = "none";
+  envInfo.style.display = "none";
 
-  if (!isLoggedIn()) {
-    // Guest mode — show flavor text + host info only
-    customToggle.style.display = "none";
-    guestHint.style.display = "";
-    guestHint.textContent = t("房主摆了摆手，表示不用客气 ヽ(´ー`)ﾉ", "The host waves dismissively — no need to be polite ヽ(´ー`)ﾉ");
-
-    const srcEnvBtn = document.getElementById("settings-src-env") as HTMLElement;
-    srcEnvBtn.style.display = "none";
+  if (pendingSource === "host") {
+    // Show host key info
+    srcEnvBtn.style.cssText = activeStyle;
+    srcCustomBtn.style.cssText = inactiveStyle;
+    envInfo.style.display = "";
 
     try {
       const config = await getKeyConfig();
       if (config) {
         envModel.textContent = `${config.model} (${config.baseUrl.replace(/https?:\/\//, "").split("/")[0]})`;
-        envInfo.style.display = "";
       } else {
         envModel.textContent = t("房主还没配置密钥", "Host hasn't configured a key yet");
-        envInfo.style.display = "";
       }
     } catch {
       envModel.textContent = t("无法连接服务器", "Cannot connect to server");
-      envInfo.style.display = "";
     }
   } else {
-    // Logged in — show both options
-    guestHint.style.display = "none";
-    customToggle.style.display = "";
-
-    if (pendingSource === "host") {
-      // Using host key
-      (document.getElementById("settings-src-env") as HTMLElement).style.cssText = activeStyle;
-      customToggle.style.cssText = inactiveStyle;
+    // "用自己的" selected
+    if (!isLoggedIn()) {
+      // Guest → toast + revert to host
+      showToast(t("房主摆了摆手，表示不用客气 ヽ(´ー`)ﾉ", "The host waves dismissively — no need to be polite ヽ(´ー`)ﾉ"));
+      pendingSource = "host";
+      srcEnvBtn.style.cssText = activeStyle;
+      srcCustomBtn.style.cssText = inactiveStyle;
       envInfo.style.display = "";
-      customFields.style.display = "none";
-
       try {
         const config = await getKeyConfig();
-        envModel.textContent = config ? `${config.model} (${config.baseUrl.replace(/https?:\/\//, "").split("/")[0]})` : t("无可用密钥", "No key available");
-      } catch {
-        envModel.textContent = t("无法连接服务器", "Cannot connect to server");
-      }
+        if (config) {
+          envModel.textContent = `${config.model} (${config.baseUrl.replace(/https?:\/\//, "").split("/")[0]})`;
+        }
+      } catch { /* ignore */ }
     } else {
-      // Custom key
-      (document.getElementById("settings-src-env") as HTMLElement).style.cssText = inactiveStyle;
-      customToggle.style.cssText = activeStyle;
-      envInfo.style.display = "none";
+      // Logged in → show input fields
+      srcEnvBtn.style.cssText = inactiveStyle;
+      srcCustomBtn.style.cssText = activeStyle;
       customFields.style.display = "";
     }
   }
@@ -139,7 +131,7 @@ async function renderSource(): Promise<void> {
 
 function switchSource(src: "host" | "custom"): void {
   pendingSource = src;
-  renderSource();
+  void renderSource();
 }
 
 // ─── Test connectivity ──────────────────────────────────────────────
@@ -154,7 +146,7 @@ async function handleTest(): Promise<void> {
   try {
     const result = await testKeyConfig();
     if (result.ok) {
-      statusEl.textContent = t("✓ 连接成功，房主的 AI 正常运行", "✓ Connected, host's AI is running");
+      statusEl.textContent = t("✓ 连接成功，AI 正常运行", "✓ Connected, AI is running");
     } else {
       statusEl.textContent = t(`✗ 连接失败: ${result.error}`, `✗ Connection failed: ${result.error}`);
     }
@@ -179,19 +171,9 @@ async function saveSettings(): Promise<void> {
   }
 
   // 2. Handle config source
-  if (!isLoggedIn()) {
-    // Guest — cannot save custom config
+  if (!isLoggedIn() || pendingSource === "host") {
     statusEl.textContent = t("✓ 已保存", "✓ Saved");
-  } else if (pendingSource === "host") {
-    // Delete own key, fall back to host
-    try {
-      await deleteKeyConfig();
-      statusEl.textContent = t("✓ 成功，悄悄连上了房主的钱包", "✓ Success, quietly connected to host's wallet");
-    } catch {
-      statusEl.textContent = t("✗ 房主的钱包被藏起来了", "✗ Host's wallet is hidden");
-    }
   } else {
-    // Save custom key
     const key = (document.getElementById("settings-api-key") as HTMLInputElement).value.trim();
     const base = (document.getElementById("settings-base-url") as HTMLInputElement).value.trim();
     const model = (document.getElementById("settings-model") as HTMLInputElement).value.trim();
@@ -214,6 +196,6 @@ async function saveSettings(): Promise<void> {
   try {
     await reinitDialogueService();
   } catch {
-    // Engine rebuild may fail silently for guest without game started
+    // Engine rebuild may fail silently before game starts
   }
 }

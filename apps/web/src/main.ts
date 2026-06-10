@@ -4,6 +4,7 @@ import { renderLobby } from "./screens/lobby";
 import { startGame, initGameEvents, getPack, refreshLang } from "./screens/game";
 import { showEnding } from "./screens/end";
 import { initSettings } from "./screens/settings";
+import { initAuth, updateUserBadges } from "./screens/auth";
 
 // ============================================================
 //  Screen management
@@ -84,6 +85,7 @@ function init(): void {
   // Wire events
   initGameEvents();
   initSettings();
+  initAuth();
 
   // Language toggle
   document.getElementById("lang-toggle-lobby")!.addEventListener("click", toggleLang);
