@@ -61,7 +61,7 @@ export async function createDialogueEngine(lang: Lang): Promise<DialogueEngine> 
   if (key) {
     provider = new OpenAICompatibleProvider({
       apiKey: key,
-      baseUrl: localStorage.getItem("storycraft_api_base") || envBase || "https://api.deepseek.com",
+      baseUrl: localStorage.getItem("storycraft_api_base") || envBase || "https://api.deepseek.com/v1",
       model: localStorage.getItem("storycraft_model") || envModel || "deepseek-v4-pro",
       maxTokens: 300,
       temperature: 0.7,

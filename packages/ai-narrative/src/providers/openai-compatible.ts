@@ -9,6 +9,11 @@ import type { ProviderConfig } from "./config";
 
 const MAX_CONSECUTIVE_FAILURES = 3;
 
+/** Strip trailing slashes so concatenation with /chat/completions is always correct. */
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
 export class OpenAICompatibleProvider implements NarrativeProvider {
   readonly id = "openai-compat";
 
@@ -63,7 +68,7 @@ export class OpenAICompatibleProvider implements NarrativeProvider {
   async healthCheck(): Promise<boolean> {
     try {
       // Minimal request to verify connectivity
-      const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+      const response = await fetch(`${normalizeBaseUrl(this.config.baseUrl)}/chat/completions`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
@@ -115,7 +120,7 @@ export class OpenAICompatibleProvider implements NarrativeProvider {
 
     let response: Response;
     try {
-      response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+      response = await fetch(`${normalizeBaseUrl(this.config.baseUrl)}/chat/completions`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,

@@ -52,21 +52,18 @@ function renderMode(mode: NarrationMode): void {
   const smartBtn = document.getElementById("settings-mode-smart") as HTMLElement;
   const descEl = document.getElementById("settings-mode-desc") as HTMLElement;
   const configEl = document.getElementById("settings-smart-config") as HTMLElement;
-  const fieldsEl = document.getElementById("settings-custom-fields") as HTMLElement;
-  const srcRow = configEl.querySelector("div") as HTMLElement; // source toggle row
 
   if (mode === "normal") {
     normalBtn.style.cssText = activeStyle;
     smartBtn.style.cssText = inactiveStyle;
     descEl.textContent = t("普通模式：NPC 通过固定话题按钮对话，不使用 AI。", "Normal mode: NPCs use fixed topic buttons, no AI.");
-    srcRow.style.visibility = "hidden";
-    fieldsEl.style.visibility = "hidden";
+    configEl.style.display = "none";
   } else {
     normalBtn.style.cssText = inactiveStyle;
     smartBtn.style.cssText = activeStyle;
     descEl.textContent = t("智能模式：NPC 由 AI 驱动自由对话。", "Smart mode: NPCs are driven by AI for free-form dialogue.");
-    srcRow.style.visibility = "visible";
-    renderSource(); // re-apply correct child visibility based on source
+    configEl.style.display = "";
+    renderSource();
   }
 }
 
@@ -85,11 +82,11 @@ function renderSource(): void {
   if (pendingSource === "env") {
     envBtn.style.cssText = srcActiveStyle;
     customBtn.style.cssText = srcInactiveStyle;
-    fieldsEl.style.visibility = "hidden";
+    fieldsEl.style.display = "none";
   } else {
     envBtn.style.cssText = srcInactiveStyle;
     customBtn.style.cssText = srcActiveStyle;
-    fieldsEl.style.visibility = "visible";
+    fieldsEl.style.display = "";
 
     // Populate from localStorage
     (document.getElementById("settings-api-key") as HTMLInputElement).value =
