@@ -6,7 +6,7 @@
 
 | #   | Task                 | Status       | Planner Session  | Executor Session |
 |-----|----------------------|--------------|------------------|------------------|
-| 001 | terminal-io-format   | in_progress  | planner-20260610 | executor-20260610 |
+| 001 | terminal-io-format   | completed    | planner-20260610 | executor-20260610 |
 
 ## Rules
 
