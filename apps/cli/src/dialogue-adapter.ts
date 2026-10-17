@@ -4,10 +4,11 @@
  */
 import type { CommandInput, WorldState, VisibleState, AdventureDefinition } from "@shared";
 import { executeCommand, getVisibleState, evaluateAll } from "@game-runtime";
-import { DialogueEngine, PassthroughProvider, OpenAICompatibleProvider, loadConfigFromEnv } from "@ai-narrative";
-import type { DialogueResult, NpcScript, DialogueContext, ConversationExchange } from "@ai-narrative";
+import { DialogueEngine, PassthroughProvider, OpenAICompatibleProvider, loadConfigFromEnv } from "@wutiankai/npc-dialogue";
+import type { DialogueResult, NpcScript, DialogueContext, ConversationExchange } from "@wutiankai/npc-dialogue";
 import type { WorldPack } from "../../web/src/world-registry";
 import { classifyIntent } from "../../web/src/services/dialogue-intent";
+import { FROSTMERE_KEYWORDS } from "../../web/src/worlds/frostmere/keywords";
 import type { DialogueIntent } from "../../web/src/services/dialogue-intent";
 import { reviewDialogueCandidates } from "../../web/src/services/dialogue-policy";
 
@@ -49,7 +50,7 @@ export async function createCliDialogueService(lang: string): Promise<CliDialogu
   }
 
   await provider.initialize();
-  const engine = new DialogueEngine(provider, { lang });
+  const engine = new DialogueEngine(provider, { lang, bilingualKeywordMap: FROSTMERE_KEYWORDS });
   await engine.initialize();
 
   return new CliDialogueService(engine);
@@ -57,13 +58,10 @@ export async function createCliDialogueService(lang: string): Promise<CliDialogu
 
 // ─── CliDialogueService ─────────────────────────────────────────────
 
-const PROVIDER_RETRY_COOLDOWN_MS = 30_000;
-
 export class CliDialogueService {
   private engine: DialogueEngine;
   private conversationHistory: Map<string, ConversationExchange[]> = new Map();
   private maxHistory = 5;
-  private lastProviderErrorAt = 0;
 
   constructor(engine: DialogueEngine) {
     this.engine = engine;
@@ -115,12 +113,6 @@ export class CliDialogueService {
       validTopicGateIds: validGateIds,
     };
 
-    // Cooldown check
-    const now = Date.now();
-    if (this.lastProviderErrorAt && (now - this.lastProviderErrorAt) < PROVIDER_RETRY_COOLDOWN_MS) {
-      return this.makeErrorResult(playerInput, state, adventure);
-    }
-
     // Call engine
     const result = await this.engine.handleFreeFormDialogue({
       npcScript,
@@ -129,11 +121,8 @@ export class CliDialogueService {
     });
 
     if (result.source === "passthrough") {
-      this.lastProviderErrorAt = Date.now();
-      return this.makeErrorResult(playerInput, state, adventure);
+      return this.makeDegradedResult(playerInput, state, adventure);
     }
-
-    this.lastProviderErrorAt = 0;
 
     // Classify intent → policy review
     const intent = classifyIntent(playerInput);
@@ -201,14 +190,15 @@ export class CliDialogueService {
     };
   }
 
-  private makeErrorResult(
+  private makeDegradedResult(
     playerInput: string,
     state: WorldState,
     adventure: AdventureDefinition,
   ): DialogueServiceResult {
+    const fallback = "…";
     return {
-      dialogue: "",
-      source: "error",
+      dialogue: fallback,
+      source: "ai",
       state,
       visibleState: getVisibleState(state, adventure),
       triggeredGateId: null,
