@@ -1,6 +1,6 @@
 # StoryCraft 部署指南
 
-## 服务器配置 (mastertooling.shop / <SERVER_IP>)
+## 服务器配置 (game.mastertooling.shop)
 
 ### 架构
 
