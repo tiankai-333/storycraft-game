@@ -2,6 +2,12 @@
 
 AI-driven NPC dialogue engine with gate-based secret revelation and bilingual keyword matching. Designed for mystery and investigation games.
 
+> **Design boundary:** the package generates reply text and *candidate* signals (gate triggers, action hints) only. It never mutates game state — validation and execution belong to the host application.
+>
+> **Used by:** [StoryCraft](https://github.com/tiankai-333/storycraft-game) — a mystery/investigation game that exercises every capability below.
+>
+> **Status:** `1.0.0-alpha.1` on npm ships a broken ESM `exports` map (points to a non-existent `dist/index.mjs`). Fixed on the main branch; if ESM install fails, import from source or wait for `alpha.2`.
+
 ## Features
 
 - **AI NPC Dialogue** — Free-form conversations powered by any OpenAI-compatible provider
