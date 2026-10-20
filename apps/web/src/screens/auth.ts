@@ -7,17 +7,13 @@ export function showToast(message: string, duration = 3000): void {
   const container = document.getElementById("toast")!;
   const el = document.createElement("div");
   el.textContent = message;
-  el.style.cssText = `
-    padding:0.5rem 1rem;font-size:0.85rem;
-    background:var(--bg-dark);color:var(--text-accent);
-    border:1px solid var(--border);border-radius:4px;
-    opacity:0;transition:opacity 0.3s;pointer-events:none;
-    font-family:inherit;max-width:320px;
-  `;
+  el.className = "toast-item";
+  el.style.pointerEvents = "none";
+  el.style.maxWidth = "320px";
   container.appendChild(el);
-  requestAnimationFrame(() => { el.style.opacity = "1"; });
+  requestAnimationFrame(() => { el.classList.add("show"); });
   setTimeout(() => {
-    el.style.opacity = "0";
+    el.classList.remove("show");
     setTimeout(() => el.remove(), 300);
   }, duration);
 }
@@ -38,6 +34,17 @@ export function initAuth(): void {
 }
 
 // ─── Open / Close ───────────────────────────────────────────────────
+
+/** Check if the current user is logged in as host (房主) */
+export function isHost(): boolean {
+  if (!isLoggedIn()) return false;
+  try {
+    const payload = JSON.parse(atob(getToken()!.split(".")[1]));
+    return payload.role === "host";
+  } catch {
+    return false;
+  }
+}
 
 export function openAuth(): void {
   const modal = document.getElementById("auth-modal") as HTMLElement;
