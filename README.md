@@ -11,7 +11,7 @@
 | 入口 | 地址 | 状态 |
 |---|---|---|
 | npm 包 | <https://www.npmjs.com/package/@wutiankai/npc-dialogue> | `1.0.0-alpha.1` 已发布（ESM exports 缺陷，见[版本状态](#四版本与发布状态)） |
-| 在线 Demo | <http://game.wutiankai.cn> | 部署中（新服务器/新域名，尚未上线） |
+| 在线 Demo | <http://game.wutiankai.cn> | 已部署并完成服务器侧验证；域名 ICP 备案受阿里云拦截，公网访问待备案解除后恢复 |
 | 包源码 | [`packages/ai-narrative/`](packages/ai-narrative/) | 本仓库主维护 |
 | 协作历史仓库 | <https://github.com/baodashuaige/StoryCraft> | UI/部署迭代线，内容已同步回本仓库 |
 
