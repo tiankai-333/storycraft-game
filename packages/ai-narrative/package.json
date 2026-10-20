@@ -3,13 +3,13 @@
   "version": "1.0.0-alpha.1",
   "description": "AI NPC dialogue engine for mystery/investigation games — dialogue generation, gate review, bilingual keyword matching",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": { "types": "./dist/index.d.mts", "default": "./dist/index.mjs" },
-      "require": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
     }
   },
   "files": ["dist"],
@@ -21,8 +21,17 @@
   },
   "keywords": ["ai", "npc", "dialogue", "mystery", "game", "narrative", "gate-review"],
   "license": "MIT",
+  "author": "Tucker_Wu <wutiankai179@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiankai-333/storycraft-game.git",
+    "directory": "packages/ai-narrative"
+  },
+  "homepage": "https://github.com/tiankai-333/storycraft-game/tree/main/packages/ai-narrative#readme",
+  "bugs": "https://github.com/tiankai-333/storycraft-game/issues",
   "devDependencies": {
     "tsup": "^8.0.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }
 }
