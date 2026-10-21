@@ -1,6 +1,6 @@
 {
   "name": "@wutiankai/npc-dialogue",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "AI NPC dialogue engine for mystery/investigation games — dialogue generation, gate review, bilingual keyword matching",
   "type": "module",
   "main": "dist/index.cjs",
@@ -30,6 +30,7 @@
   "homepage": "https://github.com/tiankai-333/storycraft-game/tree/main/packages/ai-narrative#readme",
   "bugs": "https://github.com/tiankai-333/storycraft-game/issues",
   "devDependencies": {
+    "@types/node": "^24.10.1",
     "tsup": "^8.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
